@@ -1,1 +1,14 @@
 
+{
+  "expo": {
+    "name": "حروفي المرحة",
+    "slug": "haroofi-al-marah",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.asd3ui.haroofialmarah"
+    }
+  }
+}
