@@ -10,10 +10,12 @@ import {
   Alert,
   PanResponder,
   Animated,
+  TextInput,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import * as Speech from "expo-speech";
 import { Audio } from "expo-av";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LETTERS = [
   ["ا", "ألف", "أسد", "🦁"], ["ب", "باء", "بطة", "🦆"], ["ت", "تاء", "تفاحة", "🍎"], ["ث", "ثاء", "ثعلب", "🦊"],
@@ -57,6 +59,8 @@ const BADGES = [
   { id: "champion", title: "بطل الكلمات", icon: "🏆", unlocked: (score) => score >= 15 },
   { id: "legend", title: "أسطورة اللعب", icon: "👑", unlocked: (score) => score >= 25 },
 ];
+
+const STORAGE_KEY = "haroofi-al-marah-profile";
 
 const speak = async (text) => {
   try {
@@ -107,6 +111,8 @@ export default function App() {
   const [screen, setScreen] = useState("onboarding");
   const [selected, setSelected] = useState(LETTERS[0]);
   const [selectedCharacter, setSelectedCharacter] = useState(CHARACTERS[0]);
+  const [avatarColor, setAvatarColor] = useState("#FFB5D9");
+  const [childName, setChildName] = useState("أحمد");
   const [color, setColor] = useState(COLORS[0]);
   const [learned, setLearned] = useState([]);
   const [question, setQuestion] = useState(4);
@@ -123,11 +129,15 @@ export default function App() {
   const [musicOn, setMusicOn] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
   const [completedLevels, setCompletedLevels] = useState([]);
+  const [certificateUnlocked, setCertificateUnlocked] = useState(false);
+  const [starsCollection, setStarsCollection] = useState([]);
   const musicRef = useRef(null);
   const currentPathRef = useRef("");
   const [canvasSize, setCanvasSize] = useState({ width: 320, height: 300 });
   const canvasRef = useRef(null);
   const canvasOrigin = useRef({ x: 0, y: 0 });
+
+  const persisted = useRef(false);
 
   const levelInfo = useMemo(() => {
     const unlocked = LEVELS.filter((item) => score >= item.required).at(-1) || LEVELS[0];
@@ -199,6 +209,59 @@ export default function App() {
     };
   }, [musicOn]);
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const profile = JSON.parse(raw);
+        if (profile.childName) setChildName(profile.childName);
+        if (profile.avatarColor) setAvatarColor(profile.avatarColor);
+        if (profile.selectedCharacter) setSelectedCharacter(profile.selectedCharacter);
+        if (profile.score) setScore(profile.score);
+        if (profile.learned) setLearned(profile.learned);
+        if (profile.musicOn !== undefined) setMusicOn(profile.musicOn);
+        if (profile.soundOn !== undefined) setSoundOn(profile.soundOn);
+        if (profile.completedLevels) setCompletedLevels(profile.completedLevels);
+        if (profile.starsCollection) setStarsCollection(profile.starsCollection);
+        if (profile.certificateUnlocked) setCertificateUnlocked(profile.certificateUnlocked);
+      } catch (error) {
+        console.log("Load profile failed", error);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
+  useEffect(() => {
+    if (!persisted.current) {
+      persisted.current = true;
+      return;
+    }
+
+    const saveProfile = async () => {
+      try {
+        const payload = {
+          childName,
+          avatarColor,
+          selectedCharacter,
+          score,
+          learned,
+          musicOn,
+          soundOn,
+          completedLevels,
+          starsCollection,
+          certificateUnlocked,
+        };
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (error) {
+        console.log("Save profile failed", error);
+      }
+    };
+
+    saveProfile();
+  }, [avatarColor, childName, completedLevels, certificateUnlocked, learned, musicOn, score, selectedCharacter, soundOn, starsCollection]);
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -254,6 +317,33 @@ export default function App() {
     playPositiveTone();
   };
 
+  useEffect(() => {
+    const unlocked = LEVELS.filter((item) => score >= item.required).map((item) => item.name);
+    setCompletedLevels(unlocked);
+
+    if (score >= 25) {
+      setCertificateUnlocked(true);
+    }
+  }, [score]);
+
+  useEffect(() => {
+    if (score >= 0 && !starsCollection.includes("starter")) {
+      setStarsCollection((prev) => [...prev, "starter"]);
+    }
+    if (learned.length >= 5 && !starsCollection.includes("curious")) {
+      setStarsCollection((prev) => [...prev, "curious"]);
+    }
+    if (score >= 8 && !starsCollection.includes("smart")) {
+      setStarsCollection((prev) => [...prev, "smart"]);
+    }
+    if (score >= 15 && !starsCollection.includes("champion")) {
+      setStarsCollection((prev) => [...prev, "champion"]);
+    }
+    if (score >= 25 && !starsCollection.includes("legend")) {
+      setStarsCollection((prev) => [...prev, "legend"]);
+    }
+  }, [learned.length, score, starsCollection]);
+
   useEffect(() => () => {
     Speech.stop();
   }, []);
@@ -303,7 +393,7 @@ export default function App() {
 
   const answerMissing = (item) => {
     if (item.id === missingQuestion) {
-      setMissingFeedback("رائع! أكملت الكلمة بالحرف الصحي�� ⭐");
+      setMissingFeedback("رائع! أكملت الكلمة بالحرف الصحيح ⭐");
       setScore((s) => s + 1);
       triggerCelebration("أكملت الكلمة بشكل صحيح");
       speak("رائع! لقد أتممت الكلمة بشكل صحيح.");
@@ -316,6 +406,8 @@ export default function App() {
   const goHome = () => setScreen("home");
 
   const openDashboard = () => setScreen("dashboard");
+
+  const openCertificate = () => setScreen("certificate");
 
   const activityCard = (emoji, title, description, background, onPress, badge) => (
     <Pressable
@@ -341,10 +433,6 @@ export default function App() {
       <Text style={styles.characterName}>{item.name}</Text>
     </Pressable>
   );
-
-  useEffect(() => {
-    setCompletedLevels(LEVELS.filter((item) => score >= item.required).map((item) => item.name));
-  }, [score]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -386,7 +474,37 @@ export default function App() {
           <View style={styles.welcomeCard}>
             <Text style={styles.welcomeEmoji}>🎉</Text>
             <Text style={styles.welcomeTitle}>مرحبًا بك في حروفي المرحة</Text>
-            <Text style={styles.welcomeText}>اختر شخصيتك المفضلة، ثم ابدأ رحلتك في عالم الحروف واللعب.</Text>
+            <Text style={styles.welcomeText}>اختر اسمك وشخصيتك المفضلة، ثم ابدأ رحلتك في عالم الحروف واللعب.</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>معلومات الطفل</Text>
+          <View style={styles.profileCard}>
+            <Text style={styles.inputLabel}>اسم الطفل</Text>
+            <TextInput
+              value={childName}
+              onChangeText={setChildName}
+              style={styles.input}
+              placeholder="اكتب اسم الطفل"
+              placeholderTextColor="#7C7495"
+            />
+
+            <Text style={styles.inputLabel}>لون الملف الشخصي</Text>
+            <View style={styles.colorRow}>
+              {[
+                "#FFB5D9",
+                "#BFE6FF",
+                "#D7F5C7",
+                "#FDE9A8",
+                "#EAD9FF",
+                "#FFD4C4",
+              ].map((colorValue) => (
+                <Pressable
+                  key={colorValue}
+                  onPress={() => setAvatarColor(colorValue)}
+                  style={[styles.avatarColorDot, { backgroundColor: colorValue, borderWidth: avatarColor === colorValue ? 3 : 0, borderColor: "#4B3F7A" }]}
+                />
+              ))}
+            </View>
           </View>
 
           <Text style={styles.sectionTitle}>اختر بطل رحلتك</Text>
@@ -419,14 +537,14 @@ export default function App() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.headerCard}>
             <Pressable style={styles.headerLeft} onPress={() => setScreen("onboarding")}>
-              <View style={styles.avatarBubble}>
+              <View style={[styles.avatarBubble, { backgroundColor: avatarColor }]}>
                 <Text style={styles.avatarEmoji}>{selectedCharacter.emoji}</Text>
               </View>
             </Pressable>
 
             <View style={styles.headerTextWrap}>
               <Text style={styles.logo}>حروفي المرحة</Text>
-              <Text style={styles.subtitle}>تعلم، العب، واكتشف الحروف في عالم ملون</Text>
+              <Text style={styles.subtitle}>مرحبا بك، {childName || "طفلي"}!</Text>
             </View>
 
             <View style={styles.scoreBadge}>
@@ -507,6 +625,12 @@ export default function App() {
             {activityCard("🔎", "الحرف المفقود", "أكمل الكلمة", "#FFF1B8", () => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); setScreen("missing"); }, "تحدي")}
           </View>
 
+          {certificateUnlocked && (
+            <Pressable style={styles.certificateButton} onPress={openCertificate}>
+              <Text style={styles.certificateButtonText}>عرض الشهادة 🎖️</Text>
+            </Pressable>
+          )}
+
           <Text style={styles.sectionTitle}>أو اختر حرفًا مباشرةً</Text>
           <View style={styles.lettersGrid}>
             {LETTERS.map((item) => (
@@ -523,6 +647,19 @@ export default function App() {
         </ScrollView>
       )}
 
+      {screen === "certificate" && (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
+          <View style={styles.certificateCard}>
+            <Text style={styles.certificateIcon}>🏆</Text>
+            <Text style={styles.certificateTitle}>شهادة إنجاز</Text>
+            <Text style={styles.certificateName}>{childName || "طفلي"}</Text>
+            <Text style={styles.certificateText}>تمت مكافأة هذا الطفل بنجاح في تعلم الحروف العربية، واستكشاف الكلمات، وتحقيق مستويات عالية في المرح والتعلّم.</Text>
+            <Text style={styles.certificateMeta}>النجوم: {score} · الحروف: {learned.length}/28</Text>
+          </View>
+        </ScrollView>
+      )}
+
       {screen === "dashboard" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
@@ -530,7 +667,7 @@ export default function App() {
 
           <View style={styles.dashboardCard}>
             <Text style={styles.dashboardLabel}>اسم الطفل</Text>
-            <Text style={styles.dashboardValue}>{selectedCharacter.name}</Text>
+            <Text style={styles.dashboardValue}>{childName || "غير محدد"}</Text>
             <Text style={styles.dashboardLabel}>عدد النجوم</Text>
             <Text style={styles.dashboardValue}>{score} ⭐</Text>
             <Text style={styles.dashboardLabel}>الحروف المكتسبة</Text>
@@ -741,6 +878,10 @@ const styles = StyleSheet.create({
   welcomeEmoji: { fontSize: 60 },
   welcomeTitle: { fontSize: 28, fontWeight: "900", color: "#2F2D4B", textAlign: "center", marginTop: 8 },
   welcomeText: { fontSize: 14, lineHeight: 22, color: "#5D5A7B", textAlign: "center", marginTop: 8 },
+  profileCard: { marginTop: 14, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 22, padding: 16 },
+  inputLabel: { fontSize: 12, color: "#5D5A7B", fontWeight: "800", marginBottom: 8, textAlign: "right" },
+  input: { backgroundColor: "#F7F4FF", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, fontSize: 18, color: "#2F2D4B", borderWidth: 1, borderColor: "#E7DFFF", textAlign: "right" },
+  avatarColorDot: { width: 38, height: 38, borderRadius: 19, marginHorizontal: 5 },
   sectionTitle: { fontSize: 20, fontWeight: "900", color: "#37335C", textAlign: "center", marginTop: 20, marginBottom: 12 },
   sectionTitleSmall: { fontSize: 16, fontWeight: "900", color: "#37335C", textAlign: "center", marginBottom: 12 },
   characterRowOnboarding: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 10, marginTop: 8 },
@@ -753,7 +894,7 @@ const styles = StyleSheet.create({
   playerName: { fontSize: 22, color: "#313A5F", fontWeight: "900", marginTop: 8 },
   headerCard: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 26, paddingHorizontal: 14, paddingVertical: 16, marginTop: 12, flexDirection: "row", alignItems: "center", shadowColor: "#E09D8D", shadowOpacity: 0.14, shadowRadius: 14, elevation: 3 },
   headerLeft: { width: 62, alignItems: "center", justifyContent: "center" },
-  avatarBubble: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#FFE6A9", alignItems: "center", justifyContent: "center", shadowColor: "#F3BE69", shadowOpacity: 0.25, shadowRadius: 8 },
+  avatarBubble: { width: 58, height: 58, borderRadius: 20, alignItems: "center", justifyContent: "center", shadowColor: "#F3BE69", shadowOpacity: 0.25, shadowRadius: 8 },
   avatarEmoji: { fontSize: 32 },
   headerTextWrap: { flex: 1, marginHorizontal: 8 },
   logo: { fontSize: 28, fontWeight: "900", color: "#2F2D4B", textAlign: "right" },
@@ -794,6 +935,8 @@ const styles = StyleSheet.create({
   badgeIcon: { fontSize: 26 },
   badgeTitle: { marginTop: 6, fontSize: 11, fontWeight: "800", color: "#4C4668", textAlign: "center" },
   badgeTitleLocked: { color: "#7A7490" },
+  certificateButton: { marginTop: 14, backgroundColor: "#FFE6A8", borderRadius: 18, paddingVertical: 14, alignItems: "center" },
+  certificateButtonText: { color: "#4E4368", fontWeight: "900", fontSize: 15 },
   activityGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 10 },
   activityCard: { width: "48%", minHeight: 150, borderRadius: 24, padding: 13, alignItems: "center", justifyContent: "center", shadowColor: "#AB9AD1", shadowOpacity: 0.14, shadowRadius: 10, elevation: 2 },
   activityTag: { alignSelf: "flex-end", backgroundColor: "rgba(255,255,255,0.72)", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 8 },
@@ -806,6 +949,12 @@ const styles = StyleSheet.create({
   letterTileText: { fontSize: 32, fontWeight: "900", color: "#383454" },
   tinyLabel: { fontSize: 11, color: "#66617D", marginTop: 3, textAlign: "center" },
   back: { textAlign: "right", fontWeight: "800", color: "#6256A8", fontSize: 15, paddingVertical: 12 },
+  certificateCard: { backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 28, padding: 24, alignItems: "center", marginTop: 10 },
+  certificateIcon: { fontSize: 70 },
+  certificateTitle: { fontSize: 32, fontWeight: "900", color: "#37335C", marginTop: 6 },
+  certificateName: { fontSize: 28, fontWeight: "900", color: "#5B4B9A", marginTop: 8 },
+  certificateText: { textAlign: "center", color: "#5D5A7B", fontSize: 15, lineHeight: 23, marginTop: 12 },
+  certificateMeta: { marginTop: 12, color: "#4C4668", fontWeight: "800" },
   dashboardCard: { backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 24, padding: 16, marginBottom: 14 },
   dashboardLabel: { color: "#6C6987", fontSize: 12, marginTop: 10, fontWeight: "800" },
   dashboardValue: { color: "#2F2C4A", fontSize: 24, fontWeight: "900", marginTop: 4 },
