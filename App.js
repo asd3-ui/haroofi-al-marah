@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import * as Speech from "expo-speech";
+import { Audio } from "expo-av";
 
 const LETTERS = [
   ["ا", "ألف", "أسد", "🦁"], ["ب", "باء", "بطة", "🦆"], ["ت", "تاء", "تفاحة", "🍎"], ["ث", "ثاء", "ثعلب", "🦊"],
@@ -27,10 +28,18 @@ const LETTERS = [
 const COLORS = ["#F97373", "#F6B73C", "#4BAE8A", "#6C8FF5", "#B47AE5", "#252B48"];
 
 const CHARACTERS = [
-  { name: "روبن", emoji: "🐰", accent: "#FF96B5" },
-  { name: "كوكو", emoji: "🦊", accent: "#FFB062" },
-  { name: "ماما", emoji: "🐼", accent: "#9AC8FF" },
-  { name: "نونو", emoji: "🐻", accent: "#A9D39E" },
+  { name: "روبن", emoji: "🐰", accent: "#FF96B5", description: "مغامر لطيف يحب استكشاف كل حرف" },
+  { name: "كوكو", emoji: "🦊", accent: "#FFB062", description: "شجاع وذكي ويحب التحدي" },
+  { name: "ماما", emoji: "🐼", accent: "#9AC8FF", description: "هادئة وداعمة وتحب التعلم" },
+  { name: "نونو", emoji: "🐻", accent: "#A9D39E", description: "مرح ومبدع في كل نشاط" },
+];
+
+const LEVELS = [
+  { level: 1, name: "مغامر صغير", required: 0, color: "#FFD4A0" },
+  { level: 2, name: "متعلّم جديد", required: 5, color: "#BFE6FF" },
+  { level: 3, name: "محلل أحرف", required: 12, color: "#D7F5C7" },
+  { level: 4, name: "خبير الكلمات", required: 20, color: "#E4D6FF" },
+  { level: 5, name: "أسطورة التعلم", required: 30, color: "#FFC5DD" },
 ];
 
 const CLOUDS = [
@@ -39,6 +48,14 @@ const CLOUDS = [
   { emoji: "⭐", left: 68, top: 120 },
   { emoji: "✨", left: 18, top: 190 },
   { emoji: "🌟", left: 80, top: 230 },
+];
+
+const BADGES = [
+  { id: "starter", title: "مغامر اليوم", icon: "🚀", unlocked: (score) => score >= 0 },
+  { id: "curious", title: "متعلّم فضولي", icon: "📚", unlocked: (score, learned) => learned.length >= 5 },
+  { id: "smart", title: "ذكي الأحرف", icon: "🧠", unlocked: (score) => score >= 8 },
+  { id: "champion", title: "بطل الكلمات", icon: "🏆", unlocked: (score) => score >= 15 },
+  { id: "legend", title: "أسطورة اللعب", icon: "👑", unlocked: (score) => score >= 25 },
 ];
 
 const speak = async (text) => {
@@ -87,8 +104,9 @@ const FloatingDecoration = ({ emoji, style }) => {
 };
 
 export default function App() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("onboarding");
   const [selected, setSelected] = useState(LETTERS[0]);
+  const [selectedCharacter, setSelectedCharacter] = useState(CHARACTERS[0]);
   const [color, setColor] = useState(COLORS[0]);
   const [learned, setLearned] = useState([]);
   const [question, setQuestion] = useState(4);
@@ -102,10 +120,26 @@ export default function App() {
   const [currentPath, setCurrentPath] = useState("");
   const [celebration, setCelebration] = useState([]);
   const [achievement, setAchievement] = useState({ title: "مغامرة اليوم", detail: "ابدأ رحلتك في التعلم" });
+  const [musicOn, setMusicOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(true);
+  const [completedLevels, setCompletedLevels] = useState([]);
+  const musicRef = useRef(null);
   const currentPathRef = useRef("");
   const [canvasSize, setCanvasSize] = useState({ width: 320, height: 300 });
   const canvasRef = useRef(null);
   const canvasOrigin = useRef({ x: 0, y: 0 });
+
+  const levelInfo = useMemo(() => {
+    const unlocked = LEVELS.filter((item) => score >= item.required).at(-1) || LEVELS[0];
+    const nextLevel = LEVELS.find((item) => item.required > score) || LEVELS[LEVELS.length - 1];
+    const progress = Math.min(100, Math.round(((score - unlocked.required) / Math.max(1, nextLevel.required - unlocked.required)) * 100));
+    return { unlocked, nextLevel, progress };
+  }, [score]);
+
+  const unlockedBadges = useMemo(
+    () => BADGES.filter((badge) => badge.unlocked(score, learned)).map((badge) => badge.title),
+    [learned, score]
+  );
 
   const choices = useMemo(() => {
     const correct = LETTERS[question];
@@ -121,6 +155,49 @@ export default function App() {
     const correct = LETTERS[missingQuestion];
     return shuffled([...shuffled(LETTERS.filter((item) => item.id !== correct.id)).slice(0, 3), correct]);
   }, [missingQuestion]);
+
+  const playPositiveTone = async () => {
+    if (!soundOn) return;
+    try {
+      const { sound } = await Audio.Sound.createAsync({
+        uri: "https://actions.google.com/sounds/v1/cartoon/slide_whistle.ogg",
+      });
+      await sound.playAsync();
+    } catch (error) {
+      // Ignore audio errors and keep app functional.
+    }
+  };
+
+  const startBackgroundMusic = async () => {
+    if (!musicOn) {
+      if (musicRef.current) {
+        await musicRef.current.stopAsync();
+      }
+      return;
+    }
+
+    try {
+      if (!musicRef.current) {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+          { isLooping: true, volume: 0.16 }
+        );
+        musicRef.current = sound;
+      }
+      await musicRef.current.playAsync();
+    } catch (error) {
+      // Keep the experience working if audio is unavailable.
+    }
+  };
+
+  useEffect(() => {
+    startBackgroundMusic();
+    return () => {
+      if (musicRef.current) {
+        musicRef.current.stopAsync();
+      }
+    };
+  }, [musicOn]);
 
   const panResponder = useMemo(
     () =>
@@ -174,6 +251,7 @@ export default function App() {
     setCelebration(burst);
     setAchievement({ title: "إنجاز رائع", detail: message });
     setTimeout(() => setCelebration([]), 1200);
+    playPositiveTone();
   };
 
   useEffect(() => () => {
@@ -225,9 +303,9 @@ export default function App() {
 
   const answerMissing = (item) => {
     if (item.id === missingQuestion) {
-      setMissingFeedback("رائع! أكملت الكلمة بالحرف الصحيح ⭐");
+      setMissingFeedback("رائع! أكملت الكلمة بالحرف الصحي�� ⭐");
       setScore((s) => s + 1);
-      triggerCelebration(`أكملت الكلمة بشكل صحيح`);
+      triggerCelebration("أكملت الكلمة بشكل صحيح");
       speak("رائع! لقد أتممت الكلمة بشكل صحيح.");
     } else {
       setMissingFeedback("جرّب مرة أخرى، ما الحرف الذي تبدأ به الكلمة؟ 💪");
@@ -236,6 +314,8 @@ export default function App() {
   };
 
   const goHome = () => setScreen("home");
+
+  const openDashboard = () => setScreen("dashboard");
 
   const activityCard = (emoji, title, description, background, onPress, badge) => (
     <Pressable
@@ -252,11 +332,19 @@ export default function App() {
   );
 
   const characterPill = (item, index) => (
-    <View key={item.name} style={[styles.characterPill, index % 2 === 0 ? styles.characterPillLeft : styles.characterPillRight]}>
+    <Pressable
+      key={item.name}
+      onPress={() => setSelectedCharacter(item)}
+      style={[styles.characterPill, index % 2 === 0 ? styles.characterPillLeft : styles.characterPillRight, selectedCharacter.name === item.name && styles.characterSelected]}
+    >
       <Text style={[styles.characterEmoji, { backgroundColor: item.accent }]}>{item.emoji}</Text>
       <Text style={styles.characterName}>{item.name}</Text>
-    </View>
+    </Pressable>
   );
+
+  useEffect(() => {
+    setCompletedLevels(LEVELS.filter((item) => score >= item.required).map((item) => item.name));
+  }, [score]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -293,14 +381,48 @@ export default function App() {
         </View>
       )}
 
+      {screen === "onboarding" && (
+        <ScrollView contentContainerStyle={styles.onboardingContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.welcomeCard}>
+            <Text style={styles.welcomeEmoji}>🎉</Text>
+            <Text style={styles.welcomeTitle}>مرحبًا بك في حروفي المرحة</Text>
+            <Text style={styles.welcomeText}>اختر شخصيتك المفضلة، ثم ابدأ رحلتك في عالم الحروف واللعب.</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>اختر بطل رحلتك</Text>
+          <View style={styles.characterRowOnboarding}>
+            {CHARACTERS.map((character) => (
+              <Pressable
+                key={character.name}
+                onPress={() => setSelectedCharacter(character)}
+                style={[styles.onboardingCharacter, selectedCharacter.name === character.name && styles.characterSelected]}
+              >
+                <Text style={[styles.onboardingCharacterEmoji, { backgroundColor: character.accent }]}>{character.emoji}</Text>
+                <Text style={styles.onboardingCharacterName}>{character.name}</Text>
+                <Text style={styles.onboardingDescription}>{character.description}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.playerCard}>
+            <Text style={styles.playerLabel}>الشخصية المختارة</Text>
+            <Text style={styles.playerName}>{selectedCharacter.emoji} {selectedCharacter.name}</Text>
+          </View>
+
+          <Pressable style={styles.primaryButton} onPress={() => { setScreen("home"); speak("مرحبًا، هيا نبدأ التعلم"); }}>
+            <Text style={styles.primaryButtonText}>ابدأ اللعب 🚀</Text>
+          </Pressable>
+        </ScrollView>
+      )}
+
       {screen === "home" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.headerCard}>
-            <View style={styles.headerLeft}>
+            <Pressable style={styles.headerLeft} onPress={() => setScreen("onboarding")}>
               <View style={styles.avatarBubble}>
-                <Text style={styles.avatarEmoji}>🐰</Text>
+                <Text style={styles.avatarEmoji}>{selectedCharacter.emoji}</Text>
               </View>
-            </View>
+            </Pressable>
 
             <View style={styles.headerTextWrap}>
               <Text style={styles.logo}>حروفي المرحة</Text>
@@ -315,6 +437,17 @@ export default function App() {
           <View style={styles.achievementPanel}>
             <Text style={styles.achievementTitle}>{achievement.title}</Text>
             <Text style={styles.achievementDetail}>{achievement.detail}</Text>
+          </View>
+
+          <View style={styles.levelPanel}>
+            <View style={styles.levelHeader}>
+              <Text style={styles.levelBadge}>المستوى {levelInfo.unlocked.level}</Text>
+              <Text style={styles.levelName}>{levelInfo.unlocked.name}</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${levelInfo.progress}%`, backgroundColor: levelInfo.unlocked.color }]} />
+            </View>
+            <Text style={styles.levelHint}>التقدم: {levelInfo.progress}%</Text>
           </View>
 
           <View style={styles.statsRow}>
@@ -340,8 +473,30 @@ export default function App() {
             </View>
           </View>
 
+          <View style={styles.quickRow}>
+            <Pressable style={styles.quickButton} onPress={openDashboard}>
+              <Text style={styles.quickButtonText}>لوحة المتابعة 📊</Text>
+            </Pressable>
+            <Pressable style={styles.quickButton} onPress={() => setMusicOn((v) => !v)}>
+              <Text style={styles.quickButtonText}>{musicOn ? "إيقاف الموسيقى 🔇" : "تشغيل الموسيقى 🔊"}</Text>
+            </Pressable>
+          </View>
+
           <Text style={styles.sectionTitle}>أصدقاء الحروف</Text>
           <View style={styles.characterRow}>{CHARACTERS.map(characterPill)}</View>
+
+          <Text style={styles.sectionTitle}>المكافآت</Text>
+          <View style={styles.badgesRow}>
+            {BADGES.map((badge) => {
+              const unlocked = badge.unlocked(score, learned);
+              return (
+                <View key={badge.id} style={[styles.badgeCard, !unlocked && styles.badgeLocked]}>
+                  <Text style={styles.badgeIcon}>{badge.icon}</Text>
+                  <Text style={[styles.badgeTitle, !unlocked && styles.badgeTitleLocked]}>{badge.title}</Text>
+                </View>
+              );
+            })}
+          </View>
 
           <Text style={styles.sectionTitle}>اختر نشاطًا</Text>
           <View style={styles.activityGrid}>
@@ -368,11 +523,50 @@ export default function App() {
         </ScrollView>
       )}
 
+      {screen === "dashboard" && (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
+          <Text style={styles.sectionTitle}>لوحة متابعة الوالدين / المعلم</Text>
+
+          <View style={styles.dashboardCard}>
+            <Text style={styles.dashboardLabel}>اسم الطفل</Text>
+            <Text style={styles.dashboardValue}>{selectedCharacter.name}</Text>
+            <Text style={styles.dashboardLabel}>عدد النجوم</Text>
+            <Text style={styles.dashboardValue}>{score} ⭐</Text>
+            <Text style={styles.dashboardLabel}>الحروف المكتسبة</Text>
+            <Text style={styles.dashboardValue}>{learned.length}/28</Text>
+            <Text style={styles.dashboardLabel}>المستوى الحالي</Text>
+            <Text style={styles.dashboardValue}>{levelInfo.unlocked.name}</Text>
+          </View>
+
+          <View style={styles.dashboardCard}>
+            <Text style={styles.sectionTitleSmall}>المكافآت المفتوحة</Text>
+            <View style={styles.badgesRow}>
+              {BADGES.filter((badge) => badge.unlocked(score, learned)).map((badge) => (
+                <View key={badge.id} style={styles.smallBadge}>
+                  <Text style={styles.smallBadgeIcon}>{badge.icon}</Text>
+                  <Text style={styles.smallBadgeText}>{badge.title}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.dashboardCard}>
+            <Text style={styles.sectionTitleSmall}>مراحل الإنجاز</Text>
+            {LEVELS.map((level) => (
+              <View key={level.level} style={styles.levelRow}>
+                <Text style={styles.levelBubble}>{level.level}</Text>
+                <Text style={styles.levelNameRow}>{level.name}</Text>
+                <Text style={styles.levelDot}>{score >= level.required ? "✔️" : "⏳"}</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
       {screen === "letters" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Pressable onPress={goHome}>
-            <Text style={styles.back}>← العودة للرئيسية</Text>
-          </Pressable>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <Text style={styles.sectionTitle}>هيا نتعرّف على الحروف</Text>
           <View style={styles.lettersGrid}>
             {LETTERS.map((item) => (
@@ -391,13 +585,9 @@ export default function App() {
 
       {screen === "letter" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Pressable onPress={goHome}>
-            <Text style={styles.back}>← العودة للرئيسية</Text>
-          </Pressable>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <View style={styles.detailCard}>
-            <View style={styles.detailBadge}>
-              <Text style={styles.detailBadgeText}>حرف {selected.name}</Text>
-            </View>
+            <View style={styles.detailBadge}><Text style={styles.detailBadgeText}>حرف {selected.name}</Text></View>
             <Text style={[styles.bigLetter, { color: COLORS[selected.id % COLORS.length] }]}>{selected.letter}</Text>
             <Text style={styles.letterName}>حرف {selected.name}</Text>
             <Text style={styles.wordEmoji}>{selected.emoji}</Text>
@@ -412,21 +602,15 @@ export default function App() {
           </View>
 
           <View style={styles.pager}>
-            <Pressable style={styles.navButton} onPress={() => openLetter(LETTERS[(selected.id + 27) % 28])}>
-              <Text style={styles.navText}>السابق ←</Text>
-            </Pressable>
-            <Pressable style={styles.navButton} onPress={() => openLetter(LETTERS[(selected.id + 1) % 28])}>
-              <Text style={styles.navText}>التالي →</Text>
-            </Pressable>
+            <Pressable style={styles.navButton} onPress={() => openLetter(LETTERS[(selected.id + 27) % 28])}><Text style={styles.navText}>السابق ←</Text></Pressable>
+            <Pressable style={styles.navButton} onPress={() => openLetter(LETTERS[(selected.id + 1) % 28])}><Text style={styles.navText}>التالي →</Text></Pressable>
           </View>
         </ScrollView>
       )}
 
       {screen === "color" && (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <Pressable onPress={goHome}>
-            <Text style={styles.back}>← العودة للرئيسية</Text>
-          </Pressable>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>🎨 لوّن الحرف بإصبعك</Text>
             <Text style={styles.helper}>اتبع شكل الحرف الرمادي بتمرير إصبعك عليه، وكأنك تتدرّب على كتابته.</Text>
@@ -465,61 +649,41 @@ export default function App() {
               ))}
             </View>
             <View style={styles.pager}>
-              <Pressable style={styles.navButton} onPress={() => { setPaths([]); setCurrentPath(""); currentPathRef.current = ""; }}>
-                <Text style={styles.navText}>🧹 مسح الرسم</Text>
-              </Pressable>
-              <Pressable style={styles.navButton} onPress={() => startColoring(LETTERS[(selected.id + 1) % LETTERS.length])}>
-                <Text style={styles.navText}>الحرف التالي ←</Text>
-              </Pressable>
+              <Pressable style={styles.navButton} onPress={() => { setPaths([]); setCurrentPath(""); currentPathRef.current = ""; }}><Text style={styles.navText}>🧹 مسح الرسم</Text></Pressable>
+              <Pressable style={styles.navButton} onPress={() => startColoring(LETTERS[(selected.id + 1) % LETTERS.length])}><Text style={styles.navText}>الحرف التالي ←</Text></Pressable>
             </View>
-            <Pressable style={styles.primaryButton} onPress={() => speak(`حرف ${selected.name}`)}>
-              <Text style={styles.primaryButtonText}>🔊 استمع إلى اسم الحرف</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={goHome}>
-              <Text style={styles.secondaryButtonText}>✨ انتهيت من التلوين</Text>
-            </Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => speak(`حرف ${selected.name}`)}><Text style={styles.primaryButtonText}>🔊 استمع إلى اسم الحرف</Text></Pressable>
+            <Pressable style={styles.secondaryButton} onPress={goHome}><Text style={styles.secondaryButtonText}>✨ انتهيت من التلوين</Text></Pressable>
           </View>
         </ScrollView>
       )}
 
       {screen === "game" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Pressable onPress={goHome}>
-            <Text style={styles.back}>← العودة للرئيسية</Text>
-          </Pressable>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>🎯 استمع واختر الحرف</Text>
             <Text style={styles.helper}>استمع إلى اسم الحرف ثم اختره من البطاقات.</Text>
-            <Pressable style={styles.soundButton} onPress={() => speak(LETTERS[question].name)}>
-              <Text style={styles.soundText}>🔊 استمع إلى السؤال</Text>
-            </Pressable>
+            <Pressable style={styles.soundButton} onPress={() => speak(LETTERS[question].name)}><Text style={styles.soundText}>🔊 استمع إلى السؤال</Text></Pressable>
             <View style={styles.choices}>
               {choices.map((item) => (
-                <Pressable key={item.id} onPress={() => answer(item)} style={styles.choiceTile}>
-                  <Text style={styles.choiceText}>{item.letter}</Text>
-                </Pressable>
+                <Pressable key={item.id} onPress={() => answer(item)} style={styles.choiceTile}><Text style={styles.choiceText}>{item.letter}</Text></Pressable>
               ))}
             </View>
             {!!feedback && <Text style={styles.feedback}>{feedback}</Text>}
-            <Pressable style={styles.primaryButton} onPress={nextQuestion}>
-              <Text style={styles.primaryButtonText}>سؤال جديد ➜</Text>
-            </Pressable>
+            <Pressable style={styles.primaryButton} onPress={nextQuestion}><Text style={styles.primaryButtonText}>سؤال جديد ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
 
       {screen === "match" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Pressable onPress={goHome}>
-            <Text style={styles.back}>← العودة للرئيسية</Text>
-          </Pressable>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>🧩 اربط الحرف بالكلمة</Text>
             <Text style={styles.helper}>اختر الكلمة التي تبدأ بهذا الحرف.</Text>
             <Text style={styles.matchLetter}>{LETTERS[matchQuestion].letter}</Text>
-            <Pressable style={styles.soundButton} onPress={() => speak(`حرف ${LETTERS[matchQuestion].name}`)}>
-              <Text style={styles.soundText}>🔊 استمع إلى الحرف</Text>
-            </Pressable>
+            <Pressable style={styles.soundButton} onPress={() => speak(`حرف ${LETTERS[matchQuestion].name}`)}><Text style={styles.soundText}>🔊 استمع إلى الحرف</Text></Pressable>
             <View style={styles.wordChoices}>
               {matchChoices.map((item) => (
                 <Pressable key={item.id} onPress={() => answerMatch(item)} style={styles.wordChoice}>
@@ -529,18 +693,14 @@ export default function App() {
               ))}
             </View>
             {!!matchFeedback && <Text style={styles.feedback}>{matchFeedback}</Text>}
-            <Pressable style={styles.primaryButton} onPress={() => { setMatchQuestion(randomLetterId()); setMatchFeedback(""); }}>
-              <Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text>
-            </Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => { setMatchQuestion(randomLetterId()); setMatchFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
 
       {screen === "missing" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Pressable onPress={goHome}>
-            <Text style={styles.back}>← العودة للرئيسية</Text>
-          </Pressable>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>🔎 اكتشف الحرف المفقود</Text>
             <Text style={styles.helper}>انظر إلى الصورة، ثم اختر الحرف الناقص في بداية اسمها.</Text>
@@ -552,592 +712,144 @@ export default function App() {
             <Text style={styles.helper}>اختر الحرف الذي تبدأ به الكلمة.</Text>
             <View style={styles.choices}>
               {missingChoices.map((item) => (
-                <Pressable key={item.id} onPress={() => answerMissing(item)} style={styles.choiceTile}>
-                  <Text style={styles.choiceText}>{item.letter}</Text>
-                </Pressable>
+                <Pressable key={item.id} onPress={() => answerMissing(item)} style={styles.choiceTile}><Text style={styles.choiceText}>{item.letter}</Text></Pressable>
               ))}
             </View>
             {!!missingFeedback && <Text style={styles.feedback}>{missingFeedback}</Text>}
-            <Pressable style={styles.primaryButton} onPress={() => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); }}>
-              <Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text>
-            </Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>نتعلّم كل يوم شيئًا جديدًا 💛</Text>
-      </View>
+      <View style={styles.footer}><Text style={styles.footerText}>نتعلّم كل يوم شيئًا جديدًا 💛</Text></View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#FFF9F0",
-    position: "relative",
-  },
-  bgOrb: {
-    position: "absolute",
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: "#FFD7E9",
-    opacity: 0.7,
-    top: -60,
-    right: -40,
-  },
-  bgOrbTwo: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#E1F4FF",
-    opacity: 0.8,
-    bottom: 120,
-    left: -30,
-  },
-  bgOrbThree: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "#FFF0AE",
-    opacity: 0.65,
-    top: 320,
-    right: 40,
-  },
-  cloudText: {
-    fontSize: 26,
-  },
-  celebrationLayer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    pointerEvents: "none",
-    zIndex: 10,
-  },
-  confetti: {
-    position: "absolute",
-    width: 26,
-    height: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  confettiText: {
-    fontSize: 22,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  headerCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 26,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    marginTop: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#E09D8D",
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-  headerLeft: {
-    width: 62,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarBubble: {
-    width: 58,
-    height: 58,
-    borderRadius: 20,
-    backgroundColor: "#FFE6A9",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#F3BE69",
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-  },
-  avatarEmoji: {
-    fontSize: 32,
-  },
-  headerTextWrap: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  logo: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#2F2D4B",
-    textAlign: "right",
-  },
-  subtitle: {
-    color: "#6E6A88",
-    fontSize: 12,
-    textAlign: "right",
-    marginTop: 4,
-  },
-  scoreBadge: {
-    backgroundColor: "#FFF4C6",
-    borderRadius: 18,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "#F0D787",
-  },
-  scoreText: {
-    color: "#4E4368",
-    fontWeight: "900",
-    fontSize: 14,
-  },
-  achievementPanel: {
-    marginTop: 14,
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 20,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#FFBC42",
-  },
-  achievementTitle: {
-    fontSize: 12,
-    color: "#7A688D",
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  achievementDetail: {
-    fontSize: 15,
-    color: "#4F456A",
-    fontWeight: "900",
-    marginTop: 4,
-    textAlign: "right",
-  },
-  statsRow: {
-    marginTop: 18,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    shadowColor: "#4B3C69",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#564C7B",
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#6F6A8B",
-    marginTop: 3,
-  },
-  heroCard: {
-    marginTop: 18,
-    backgroundColor: "#DFF3FF",
-    borderRadius: 28,
-    padding: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    shadowColor: "#76B6E6",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  heroEmoji: {
-    fontSize: 52,
-  },
-  heroTitle: {
-    color: "#37335C",
-    fontSize: 20,
-    fontWeight: "900",
-    textAlign: "right",
-  },
-  heroText: {
-    color: "#555574",
-    textAlign: "right",
-    lineHeight: 22,
-    marginTop: 5,
-    fontSize: 13,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#37335C",
-    textAlign: "center",
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  characterRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  characterPill: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.75)",
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    alignItems: "center",
-  },
-  characterPillLeft: {
-    transform: [{ translateY: 6 }],
-  },
-  characterPillRight: {
-    transform: [{ translateY: -6 }],
-  },
-  characterEmoji: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    textAlign: "center",
-    textAlignVertical: "center",
-    fontSize: 24,
-    overflow: "hidden",
-  },
-  characterName: {
-    color: "#534E72",
-    fontSize: 11,
-    fontWeight: "800",
-    marginTop: 5,
-  },
-  activityGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  activityCard: {
-    width: "48%",
-    minHeight: 150,
-    borderRadius: 24,
-    padding: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#AB9AD1",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  activityTag: {
-    alignSelf: "flex-end",
-    backgroundColor: "rgba(255,255,255,0.72)",
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  activityTagText: {
-    fontSize: 10,
-    color: "#5C4F89",
-    fontWeight: "800",
-  },
-  activityEmoji: {
-    fontSize: 32,
-  },
-  activityTitle: {
-    fontWeight: "900",
-    color: "#403A62",
-    marginTop: 8,
-    textAlign: "center",
-    fontSize: 15,
-  },
-  activityDescription: {
-    fontSize: 11,
-    color: "#66617D",
-    textAlign: "center",
-    marginTop: 5,
-    lineHeight: 16,
-  },
-  lettersGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 10,
-  },
-  letterTile: {
-    width: "21%",
-    minHeight: 90,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 6,
-    borderWidth: 1,
-    borderColor: "rgba(123, 108, 176, 0.12)",
-  },
-  letterTileText: {
-    fontSize: 32,
-    fontWeight: "900",
-    color: "#383454",
-  },
-  tinyLabel: {
-    fontSize: 11,
-    color: "#66617D",
-    marginTop: 3,
-    textAlign: "center",
-  },
-  back: {
-    textAlign: "right",
-    fontWeight: "800",
-    color: "#6256A8",
-    fontSize: 15,
-    paddingVertical: 12,
-  },
-  detailCard: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 28,
-    padding: 18,
-    alignItems: "center",
-    marginTop: 8,
-    shadowColor: "#3B315D",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  detailBadge: {
-    backgroundColor: "#EAE3FF",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 8,
-  },
-  detailBadgeText: {
-    fontSize: 12,
-    color: "#564E79",
-    fontWeight: "800",
-  },
-  bigLetter: {
-    fontSize: 122,
-    fontWeight: "900",
-    lineHeight: 138,
-  },
-  letterName: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#37335C",
-  },
-  wordEmoji: {
-    fontSize: 72,
-    marginTop: 12,
-  },
-  word: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#363252",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  helper: {
-    color: "#77718E",
-    textAlign: "center",
-    marginVertical: 10,
-    lineHeight: 22,
-  },
-  primaryButton: {
-    backgroundColor: "#7063D8",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 18,
-    alignItems: "center",
-    width: "100%",
-    marginTop: 10,
-    shadowColor: "#7063D8",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  secondaryButton: {
-    backgroundColor: "#EDE9FF",
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-    borderRadius: 18,
-    alignItems: "center",
-    width: "100%",
-    marginTop: 10,
-  },
-  secondaryButtonText: {
-    color: "#5548A7",
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  pager: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-    marginTop: 12,
-    width: "100%",
-  },
-  navButton: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.7)",
-    padding: 14,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  navText: {
-    color: "#5548A7",
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  drawingCanvas: {
-    width: "100%",
-    height: 300,
-    borderRadius: 22,
-    backgroundColor: "#FFFDF7",
-    borderWidth: 2,
-    borderColor: "#E6E0F5",
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  letterGuide: {
-    position: "absolute",
-    fontSize: 220,
-    lineHeight: 260,
-    color: "#D8D4E3",
-    fontWeight: "900",
-    textAlign: "center",
-    textAlignVertical: "center",
-  },
-  colorRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    gap: 10,
-    marginVertical: 15,
-  },
-  colorDot: {
-    width: 42,
-    height: 42,
-    borderRadius: 24,
-  },
-  soundButton: {
-    backgroundColor: "#DFF3FF",
-    padding: 14,
-    borderRadius: 16,
-    marginTop: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  soundText: {
-    color: "#3F5789",
-    fontWeight: "900",
-    fontSize: 16,
-  },
-  choices: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 10,
-    marginVertical: 18,
-  },
-  choiceTile: {
-    width: "44%",
-    height: 90,
-    borderRadius: 20,
-    backgroundColor: "#F0E8FF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(112, 99, 216, 0.12)",
-  },
-  choiceText: {
-    color: "#4B427C",
-    fontWeight: "900",
-    fontSize: 40,
-  },
-  matchLetter: {
-    fontSize: 105,
-    lineHeight: 125,
-    color: "#7063D8",
-    fontWeight: "900",
-  },
-  wordChoices: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 10,
-    marginVertical: 16,
-  },
-  wordChoice: {
-    width: "46%",
-    minHeight: 105,
-    borderRadius: 18,
-    backgroundColor: "#F0E8FF",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "rgba(112, 99, 216, 0.12)",
-  },
-  wordChoiceEmoji: {
-    fontSize: 36,
-  },
-  wordChoiceText: {
-    fontSize: 17,
-    color: "#403A62",
-    fontWeight: "900",
-    marginTop: 5,
-    textAlign: "center",
-  },
-  missingPictureCard: {
-    width: "100%",
-    alignItems: "center",
-    backgroundColor: "#F0F9FF",
-    borderRadius: 22,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "#D6EDFF",
-  },
-  missingPicture: {
-    fontSize: 88,
-    lineHeight: 112,
-  },
-  missingPictureHint: {
-    color: "#77718E",
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 5,
-  },
-  missingWord: {
-    fontSize: 45,
-    color: "#37335C",
-    fontWeight: "900",
-    marginVertical: 8,
-  },
-  feedback: {
-    color: "#2C815B",
-    fontWeight: "900",
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  footer: {
-    padding: 12,
-    alignItems: "center",
-  },
-  footerText: {
-    color: "#9991AC",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  safe: { flex: 1, backgroundColor: "#FFF9F0", position: "relative" },
+  bgOrb: { position: "absolute", width: 260, height: 260, borderRadius: 130, backgroundColor: "#FFD7E9", opacity: 0.7, top: -60, right: -40 },
+  bgOrbTwo: { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "#E1F4FF", opacity: 0.8, bottom: 120, left: -30 },
+  bgOrbThree: { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "#FFF0AE", opacity: 0.65, top: 320, right: 40 },
+  cloudText: { fontSize: 26 },
+  celebrationLayer: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, pointerEvents: "none", zIndex: 10 },
+  confetti: { position: "absolute", width: 26, height: 26, alignItems: "center", justifyContent: "center" },
+  confettiText: { fontSize: 22 },
+  content: { paddingHorizontal: 16, paddingBottom: 20 },
+  onboardingContent: { paddingHorizontal: 16, paddingBottom: 40 },
+  welcomeCard: { marginTop: 22, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 28, padding: 22, alignItems: "center" },
+  welcomeEmoji: { fontSize: 60 },
+  welcomeTitle: { fontSize: 28, fontWeight: "900", color: "#2F2D4B", textAlign: "center", marginTop: 8 },
+  welcomeText: { fontSize: 14, lineHeight: 22, color: "#5D5A7B", textAlign: "center", marginTop: 8 },
+  sectionTitle: { fontSize: 20, fontWeight: "900", color: "#37335C", textAlign: "center", marginTop: 20, marginBottom: 12 },
+  sectionTitleSmall: { fontSize: 16, fontWeight: "900", color: "#37335C", textAlign: "center", marginBottom: 12 },
+  characterRowOnboarding: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 10, marginTop: 8 },
+  onboardingCharacter: { width: "46%", backgroundColor: "rgba(255,255,255,0.75)", borderRadius: 22, padding: 14, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
+  onboardingCharacterEmoji: { width: 68, height: 68, borderRadius: 34, textAlign: "center", textAlignVertical: "center", fontSize: 38, overflow: "hidden" },
+  onboardingCharacterName: { fontSize: 18, fontWeight: "900", color: "#413A63", marginTop: 10 },
+  onboardingDescription: { fontSize: 11, color: "#676080", textAlign: "center", marginTop: 8, lineHeight: 16 },
+  playerCard: { marginTop: 18, backgroundColor: "#EAF7FF", borderRadius: 20, padding: 14, alignItems: "center" },
+  playerLabel: { fontSize: 12, color: "#58718E", fontWeight: "800" },
+  playerName: { fontSize: 22, color: "#313A5F", fontWeight: "900", marginTop: 8 },
+  headerCard: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 26, paddingHorizontal: 14, paddingVertical: 16, marginTop: 12, flexDirection: "row", alignItems: "center", shadowColor: "#E09D8D", shadowOpacity: 0.14, shadowRadius: 14, elevation: 3 },
+  headerLeft: { width: 62, alignItems: "center", justifyContent: "center" },
+  avatarBubble: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#FFE6A9", alignItems: "center", justifyContent: "center", shadowColor: "#F3BE69", shadowOpacity: 0.25, shadowRadius: 8 },
+  avatarEmoji: { fontSize: 32 },
+  headerTextWrap: { flex: 1, marginHorizontal: 8 },
+  logo: { fontSize: 28, fontWeight: "900", color: "#2F2D4B", textAlign: "right" },
+  subtitle: { color: "#6E6A88", fontSize: 12, textAlign: "right", marginTop: 4 },
+  scoreBadge: { backgroundColor: "#FFF4C6", borderRadius: 18, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: "#F0D787" },
+  scoreText: { color: "#4E4368", fontWeight: "900", fontSize: 14 },
+  achievementPanel: { marginTop: 14, backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 20, padding: 12, borderLeftWidth: 4, borderLeftColor: "#FFBC42" },
+  achievementTitle: { fontSize: 12, color: "#7A688D", fontWeight: "800", textAlign: "right" },
+  achievementDetail: { fontSize: 15, color: "#4F456A", fontWeight: "900", marginTop: 4, textAlign: "right" },
+  levelPanel: { marginTop: 14, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 20, padding: 12 },
+  levelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  levelBadge: { backgroundColor: "#EDE8FF", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, color: "#564C7B", fontWeight: "900", fontSize: 12 },
+  levelName: { color: "#665B84", fontWeight: "900", fontSize: 13 },
+  progressBar: { marginTop: 10, height: 14, backgroundColor: "#F0E9FF", borderRadius: 999, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 999 },
+  levelHint: { marginTop: 8, textAlign: "right", color: "#655E7D", fontSize: 12, fontWeight: "700" },
+  statsRow: { marginTop: 18, flexDirection: "row", justifyContent: "space-between", gap: 10 },
+  statCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 20, paddingVertical: 14, paddingHorizontal: 12, alignItems: "center", shadowColor: "#4B3C69", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  statValue: { fontSize: 22, fontWeight: "900", color: "#564C7B" },
+  statLabel: { fontSize: 11, color: "#6F6A8B", marginTop: 3 },
+  heroCard: { marginTop: 18, backgroundColor: "#DFF3FF", borderRadius: 28, padding: 18, flexDirection: "row", alignItems: "center", gap: 12, shadowColor: "#76B6E6", shadowOpacity: 0.15, shadowRadius: 12, elevation: 2 },
+  heroEmoji: { fontSize: 52 },
+  heroTitle: { color: "#37335C", fontSize: 20, fontWeight: "900", textAlign: "right" },
+  heroText: { color: "#555574", textAlign: "right", lineHeight: 22, marginTop: 5, fontSize: 13 },
+  quickRow: { marginTop: 16, flexDirection: "row", justifyContent: "space-between", gap: 10 },
+  quickButton: { flex: 1, backgroundColor: "#EDE8FF", paddingVertical: 12, borderRadius: 16, alignItems: "center" },
+  quickButtonText: { color: "#4F4275", fontWeight: "900", fontSize: 12 },
+  characterRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+  characterPill: { flex: 1, backgroundColor: "rgba(255,255,255,0.75)", borderRadius: 18, paddingVertical: 10, paddingHorizontal: 8, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
+  characterPillLeft: { transform: [{ translateY: 6 }] },
+  characterPillRight: { transform: [{ translateY: -6 }] },
+  characterSelected: { borderColor: "#7A63D6", backgroundColor: "#F0EEFF" },
+  characterEmoji: { width: 42, height: 42, borderRadius: 21, textAlign: "center", textAlignVertical: "center", fontSize: 24, overflow: "hidden" },
+  characterName: { color: "#534E72", fontSize: 11, fontWeight: "800", marginTop: 5 },
+  badgesRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 10 },
+  badgeCard: { width: "31%", backgroundColor: "#FFF7D8", borderRadius: 18, padding: 10, alignItems: "center" },
+  badgeLocked: { opacity: 0.45 },
+  badgeIcon: { fontSize: 26 },
+  badgeTitle: { marginTop: 6, fontSize: 11, fontWeight: "800", color: "#4C4668", textAlign: "center" },
+  badgeTitleLocked: { color: "#7A7490" },
+  activityGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 10 },
+  activityCard: { width: "48%", minHeight: 150, borderRadius: 24, padding: 13, alignItems: "center", justifyContent: "center", shadowColor: "#AB9AD1", shadowOpacity: 0.14, shadowRadius: 10, elevation: 2 },
+  activityTag: { alignSelf: "flex-end", backgroundColor: "rgba(255,255,255,0.72)", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 8 },
+  activityTagText: { fontSize: 10, color: "#5C4F89", fontWeight: "800" },
+  activityEmoji: { fontSize: 32 },
+  activityTitle: { fontWeight: "900", color: "#403A62", marginTop: 8, textAlign: "center", fontSize: 15 },
+  activityDescription: { fontSize: 11, color: "#66617D", textAlign: "center", marginTop: 5, lineHeight: 16 },
+  lettersGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10 },
+  letterTile: { width: "21%", minHeight: 90, borderRadius: 20, alignItems: "center", justifyContent: "center", padding: 6, borderWidth: 1, borderColor: "rgba(123, 108, 176, 0.12)" },
+  letterTileText: { fontSize: 32, fontWeight: "900", color: "#383454" },
+  tinyLabel: { fontSize: 11, color: "#66617D", marginTop: 3, textAlign: "center" },
+  back: { textAlign: "right", fontWeight: "800", color: "#6256A8", fontSize: 15, paddingVertical: 12 },
+  dashboardCard: { backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 24, padding: 16, marginBottom: 14 },
+  dashboardLabel: { color: "#6C6987", fontSize: 12, marginTop: 10, fontWeight: "800" },
+  dashboardValue: { color: "#2F2C4A", fontSize: 24, fontWeight: "900", marginTop: 4 },
+  smallBadge: { width: "31%", backgroundColor: "#F0EEFF", borderRadius: 16, padding: 10, alignItems: "center" },
+  smallBadgeIcon: { fontSize: 20 },
+  smallBadgeText: { fontSize: 10, color: "#4C4668", fontWeight: "800", marginTop: 4, textAlign: "center" },
+  levelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#EFEAF9" },
+  levelBubble: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#EAE3FF", textAlign: "center", textAlignVertical: "center", fontWeight: "900", color: "#5C4A8D" },
+  levelNameRow: { flex: 1, marginLeft: 10, color: "#453E66", fontWeight: "800" },
+  levelDot: { fontSize: 18 },
+  detailCard: { backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 28, padding: 18, alignItems: "center", marginTop: 8, shadowColor: "#3B315D", shadowOpacity: 0.08, shadowRadius: 12, elevation: 2 },
+  detailBadge: { backgroundColor: "#EAE3FF", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
+  detailBadgeText: { fontSize: 12, color: "#564E79", fontWeight: "800" },
+  bigLetter: { fontSize: 122, fontWeight: "900", lineHeight: 138 },
+  letterName: { fontSize: 22, fontWeight: "900", color: "#37335C" },
+  wordEmoji: { fontSize: 72, marginTop: 12 },
+  word: { fontSize: 28, fontWeight: "900", color: "#363252", marginTop: 4, textAlign: "center" },
+  helper: { color: "#77718E", textAlign: "center", marginVertical: 10, lineHeight: 22 },
+  primaryButton: { backgroundColor: "#7063D8", paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, alignItems: "center", width: "100%", marginTop: 10, shadowColor: "#7063D8", shadowOpacity: 0.18, shadowRadius: 10 },
+  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
+  secondaryButton: { backgroundColor: "#EDE9FF", paddingVertical: 13, paddingHorizontal: 18, borderRadius: 18, alignItems: "center", width: "100%", marginTop: 10 },
+  secondaryButtonText: { color: "#5548A7", fontSize: 15, fontWeight: "900" },
+  pager: { flexDirection: "row", justifyContent: "space-between", gap: 10, marginTop: 12, width: "100%" },
+  navButton: { flex: 1, backgroundColor: "rgba(255,255,255,0.7)", padding: 14, borderRadius: 16, alignItems: "center" },
+  navText: { color: "#5548A7", fontWeight: "800", textAlign: "center" },
+  drawingCanvas: { width: "100%", height: 300, borderRadius: 22, backgroundColor: "#FFFDF7", borderWidth: 2, borderColor: "#E6E0F5", overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  letterGuide: { position: "absolute", fontSize: 220, lineHeight: 260, color: "#D8D4E3", fontWeight: "900", textAlign: "center", textAlignVertical: "center" },
+  colorRow: { flexDirection: "row", justifyContent: "center", flexWrap: "wrap", gap: 10, marginVertical: 15 },
+  colorDot: { width: 42, height: 42, borderRadius: 24 },
+  soundButton: { backgroundColor: "#DFF3FF", padding: 14, borderRadius: 16, marginTop: 10, width: "100%", alignItems: "center" },
+  soundText: { color: "#3F5789", fontWeight: "900", fontSize: 16 },
+  choices: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10, marginVertical: 18 },
+  choiceTile: { width: "44%", height: 90, borderRadius: 20, backgroundColor: "#F0E8FF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(112, 99, 216, 0.12)" },
+  choiceText: { color: "#4B427C", fontWeight: "900", fontSize: 40 },
+  matchLetter: { fontSize: 105, lineHeight: 125, color: "#7063D8", fontWeight: "900" },
+  wordChoices: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10, marginVertical: 16 },
+  wordChoice: { width: "46%", minHeight: 105, borderRadius: 18, backgroundColor: "#F0E8FF", alignItems: "center", justifyContent: "center", padding: 10, borderWidth: 1, borderColor: "rgba(112, 99, 216, 0.12)" },
+  wordChoiceEmoji: { fontSize: 36 },
+  wordChoiceText: { fontSize: 17, color: "#403A62", fontWeight: "900", marginTop: 5, textAlign: "center" },
+  missingPictureCard: { width: "100%", alignItems: "center", backgroundColor: "#F0F9FF", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "#D6EDFF" },
+  missingPicture: { fontSize: 88, lineHeight: 112 },
+  missingPictureHint: { color: "#77718E", fontSize: 14, fontWeight: "700", marginBottom: 5 },
+  missingWord: { fontSize: 45, color: "#37335C", fontWeight: "900", marginVertical: 8 },
+  feedback: { color: "#2C815B", fontWeight: "900", fontSize: 16, textAlign: "center", marginBottom: 8 },
+  footer: { padding: 12, alignItems: "center" },
+  footerText: { color: "#9991AC", fontSize: 12, fontWeight: "700" },
 });
