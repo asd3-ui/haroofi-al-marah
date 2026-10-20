@@ -9,6 +9,7 @@ import {
   StatusBar,
   Alert,
   PanResponder,
+  Animated,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import * as Speech from "expo-speech";
@@ -30,6 +31,14 @@ const CHARACTERS = [
   { name: "كوكو", emoji: "🦊", accent: "#FFB062" },
   { name: "ماما", emoji: "🐼", accent: "#9AC8FF" },
   { name: "نونو", emoji: "🐻", accent: "#A9D39E" },
+];
+
+const CLOUDS = [
+  { emoji: "☁️", left: 28, top: 90 },
+  { emoji: "☁️", left: 72, top: 170 },
+  { emoji: "⭐", left: 68, top: 120 },
+  { emoji: "✨", left: 18, top: 190 },
+  { emoji: "🌟", left: 80, top: 230 },
 ];
 
 const speak = async (text) => {
@@ -57,6 +66,26 @@ const speak = async (text) => {
 const shuffled = (items) => [...items].sort(() => Math.random() - 0.5);
 const randomLetterId = () => Math.floor(Math.random() * LETTERS.length);
 
+const FloatingDecoration = ({ emoji, style }) => {
+  const animatedY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedY, { toValue: -10, duration: 1500, useNativeDriver: true }),
+        Animated.timing(animatedY, { toValue: 10, duration: 1500, useNativeDriver: true }),
+        Animated.timing(animatedY, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [animatedY]);
+
+  return (
+    <Animated.View style={[style, { transform: [{ translateY: animatedY }] }]}>
+      <Text style={styles.cloudText}>{emoji}</Text>
+    </Animated.View>
+  );
+};
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [selected, setSelected] = useState(LETTERS[0]);
@@ -71,6 +100,8 @@ export default function App() {
   const [missingFeedback, setMissingFeedback] = useState("");
   const [paths, setPaths] = useState([]);
   const [currentPath, setCurrentPath] = useState("");
+  const [celebration, setCelebration] = useState([]);
+  const [achievement, setAchievement] = useState({ title: "مغامرة اليوم", detail: "ابدأ رحلتك في التعلم" });
   const currentPathRef = useRef("");
   const [canvasSize, setCanvasSize] = useState({ width: 320, height: 300 });
   const canvasRef = useRef(null);
@@ -130,6 +161,21 @@ export default function App() {
     [canvasSize.height, canvasSize.width]
   );
 
+  const triggerCelebration = (message) => {
+    const burst = Array.from({ length: 12 }, (_, index) => ({
+      id: `${Date.now()}-${index}`,
+      left: 20 + (index % 4) * 18,
+      top: 18 + Math.floor(index / 4) * 18,
+      emoji: ["⭐", "✨", "🎉", "🌟"][index % 4],
+      x: (index % 3) * 28 - 28,
+      y: Math.floor(index / 3) * 28 - 28,
+    }));
+
+    setCelebration(burst);
+    setAchievement({ title: "إنجاز رائع", detail: message });
+    setTimeout(() => setCelebration([]), 1200);
+  };
+
   useEffect(() => () => {
     Speech.stop();
   }, []);
@@ -157,8 +203,11 @@ export default function App() {
     if (item.id === question) {
       setFeedback("أحسنت! إجابة رائعة ⭐");
       setScore((s) => s + 1);
+      triggerCelebration(`إجابة صحيحة: ${item.letter}`);
+      speak("أحسنت! هذا هو الحرف الصحيح.");
     } else {
       setFeedback("حاول مرة أخرى، أنت تستطيع 💪");
+      setAchievement({ title: "جرب مجددًا", detail: "أنت على الطريق الصحيح" });
     }
   };
 
@@ -166,8 +215,11 @@ export default function App() {
     if (item.id === matchQuestion) {
       setMatchFeedback("أحسنت! هذه الكلمة تبدأ بهذا الحرف ⭐");
       setScore((s) => s + 1);
+      triggerCelebration(`كلمة صحيحة: ${item.word}`);
+      speak("أحسنت! الكلمة صحيحة.");
     } else {
       setMatchFeedback("اقتربت! استمع إلى الحرف وحاول مرة أخرى 💪");
+      setAchievement({ title: "اقتربت", detail: "استمع مرة أخرى" });
     }
   };
 
@@ -175,8 +227,11 @@ export default function App() {
     if (item.id === missingQuestion) {
       setMissingFeedback("رائع! أكملت الكلمة بالحرف الصحيح ⭐");
       setScore((s) => s + 1);
+      triggerCelebration(`أكملت الكلمة بشكل صحيح`);
+      speak("رائع! لقد أتممت الكلمة بشكل صحيح.");
     } else {
       setMissingFeedback("جرّب مرة أخرى، ما الحرف الذي تبدأ به الكلمة؟ 💪");
+      setAchievement({ title: "جرب مرة أخرى", detail: "ستفعلها في المرة القادمة" });
     }
   };
 
@@ -189,7 +244,7 @@ export default function App() {
       style={[styles.activityCard, { backgroundColor: background }]}
       onPress={onPress}
     >
-      <View style={styles.activityTag}>{badge ? <Text style={styles.activityTagText}>{badge}</Text> : null}</View>
+      <View style={styles.activityTag}><Text style={styles.activityTagText}>{badge}</Text></View>
       <Text style={styles.activityEmoji}>{emoji}</Text>
       <Text style={styles.activityTitle}>{title}</Text>
       <Text style={styles.activityDescription}>{description}</Text>
@@ -210,6 +265,34 @@ export default function App() {
       <View style={styles.bgOrbTwo} />
       <View style={styles.bgOrbThree} />
 
+      {CLOUDS.map((cloud, index) => (
+        <FloatingDecoration
+          key={`${cloud.emoji}-${index}`}
+          emoji={cloud.emoji}
+          style={{ position: "absolute", left: `${cloud.left}%`, top: cloud.top, opacity: 0.7 }}
+        />
+      ))}
+
+      {celebration.length > 0 && (
+        <View pointerEvents="none" style={styles.celebrationLayer}>
+          {celebration.map((item) => (
+            <Animated.View
+              key={item.id}
+              style={[
+                styles.confetti,
+                {
+                  left: `${item.left}%`,
+                  top: `${item.top}%`,
+                  transform: [{ translateX: item.x }, { translateY: item.y }],
+                },
+              ]}
+            >
+              <Text style={styles.confettiText}>{item.emoji}</Text>
+            </Animated.View>
+          ))}
+        </View>
+      )}
+
       {screen === "home" && (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.headerCard}>
@@ -227,6 +310,11 @@ export default function App() {
             <View style={styles.scoreBadge}>
               <Text style={styles.scoreText}>⭐ {score}</Text>
             </View>
+          </View>
+
+          <View style={styles.achievementPanel}>
+            <Text style={styles.achievementTitle}>{achievement.title}</Text>
+            <Text style={styles.achievementDetail}>{achievement.detail}</Text>
           </View>
 
           <View style={styles.statsRow}>
@@ -520,6 +608,28 @@ const styles = StyleSheet.create({
     top: 320,
     right: 40,
   },
+  cloudText: {
+    fontSize: 26,
+  },
+  celebrationLayer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    pointerEvents: "none",
+    zIndex: 10,
+  },
+  confetti: {
+    position: "absolute",
+    width: 26,
+    height: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confettiText: {
+    fontSize: 22,
+  },
   content: {
     paddingHorizontal: 16,
     paddingBottom: 20,
@@ -584,6 +694,27 @@ const styles = StyleSheet.create({
     color: "#4E4368",
     fontWeight: "900",
     fontSize: 14,
+  },
+  achievementPanel: {
+    marginTop: 14,
+    backgroundColor: "rgba(255,255,255,0.78)",
+    borderRadius: 20,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FFBC42",
+  },
+  achievementTitle: {
+    fontSize: 12,
+    color: "#7A688D",
+    fontWeight: "800",
+    textAlign: "right",
+  },
+  achievementDetail: {
+    fontSize: 15,
+    color: "#4F456A",
+    fontWeight: "900",
+    marginTop: 4,
+    textAlign: "right",
   },
   statsRow: {
     marginTop: 18,
