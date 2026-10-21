@@ -18,14 +18,66 @@ import { Audio } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LETTERS = [
-  ["ا", "ألف", "أسد", "🦁"], ["ب", "باء", "بطة", "🦆"], ["ت", "تاء", "تفاحة", "🍎"], ["ث", "ثاء", "ثعلب", "🦊"],
-  ["ج", "جيم", "جمل", "🐪"], ["ح", "حاء", "حصان", "🐴"], ["خ", "خاء", "خروف", "🐑"], ["د", "دال", "دب", "🐻"],
-  ["ذ", "ذال", "ذرة", "🌽"], ["ر", "راء", "ريشة", "🪶"], ["ز", "زاي", "زهرة", "🌸"], ["س", "سين", "سمكة", "🐟"],
-  ["ش", "شين", "شمس", "☀️"], ["ص", "صاد", "صقر", "🦅"], ["ض", "ضاد", "ضفدع", "🐸"], ["ط", "طاء", "طائرة", "✈️"],
-  ["ظ", "ظاء", "ظرف", "✉️"], ["ع", "عين", "عنب", "🍇"], ["غ", "غين", "غيمة", "☁️"], ["ف", "فاء", "فراشة", "🦋"],
-  ["ق", "قاف", "قمر", "🌙"], ["ك", "كاف", "كتاب", "📘"], ["ل", "لام", "ليمون", "🍋"], ["م", "ميم", "موز", "🍌"],
-  ["ن", "نون", "نحلة", "🐝"], ["ه", "هاء", "هلال", "🌙"], ["و", "واو", "وردة", "🌹"], ["ي", "ياء", "يد", "✋"],
+  ["ا", "ألف", "أسد", "🦁"],
+  ["ب", "باء", "بطة", "🦆"],
+  ["ت", "تاء", "تفاحة", "🍎"],
+  ["ث", "ثاء", "ثعلب", "🦊"],
+  ["ج", "جيم", "جمل", "🐪"],
+  ["ح", "حاء", "حصان", "🐴"],
+  ["خ", "خاء", "خروف", "🐑"],
+  ["د", "دال", "دب", "🐻"],
+  ["ذ", "ذال", "ذرة", "🌽"],
+  ["ر", "راء", "ريشة", "🪶"],
+  ["ز", "زاي", "زهرة", "🌸"],
+  ["س", "سين", "سمكة", "🐟"],
+  ["ش", "شين", "شمس", "☀️"],
+  ["ص", "صاد", "صقر", "🦅"],
+  ["ض", "ضاد", "ضفدع", "🐸"],
+  ["ط", "طاء", "طائرة", "✈️"],
+  ["ظ", "ظاء", "ظرف", "✉️"],
+  ["ع", "عين", "عنب", "🍇"],
+  ["غ", "غين", "غيمة", "☁️"],
+  ["ف", "فاء", "فراشة", "🦋"],
+  ["ق", "قاف", "قمر", "🌙"],
+  ["ك", "كاف", "كتاب", "📘"],
+  ["ل", "لام", "ليمون", "🍋"],
+  ["م", "ميم", "موز", "🍌"],
+  ["ن", "نون", "نحلة", "🐝"],
+  ["ه", "هاء", "هلال", "🌙"],
+  ["و", "واو", "وردة", "🌹"],
+  ["ي", "ياء", "يد", "✋"],
 ].map(([letter, name, word, emoji], id) => ({ id, letter, name, word, emoji }));
+
+const WORD_BANK = [
+  { id: 0, letter: "ا", word: "أسد", emoji: "🦁" },
+  { id: 1, letter: "ب", word: "بطة", emoji: "🦆" },
+  { id: 2, letter: "ت", word: "تفاحة", emoji: "🍎" },
+  { id: 3, letter: "ث", word: "ثعلب", emoji: "🦊" },
+  { id: 4, letter: "ج", word: "جمل", emoji: "🐪" },
+  { id: 5, letter: "ح", word: "حصان", emoji: "🐴" },
+  { id: 6, letter: "خ", word: "خروف", emoji: "🐑" },
+  { id: 7, letter: "د", word: "دب", emoji: "🐻" },
+  { id: 8, letter: "ذ", word: "ذرة", emoji: "🌽" },
+  { id: 9, letter: "ر", word: "ريشة", emoji: "🪶" },
+  { id: 10, letter: "ز", word: "زهرة", emoji: "🌸" },
+  { id: 11, letter: "س", word: "سمكة", emoji: "🐟" },
+  { id: 12, letter: "ش", word: "شمس", emoji: "☀️" },
+  { id: 13, letter: "ص", word: "صقر", emoji: "🦅" },
+  { id: 14, letter: "ض", word: "ضفدع", emoji: "🐸" },
+  { id: 15, letter: "ط", word: "طائرة", emoji: "✈️" },
+  { id: 16, letter: "ظ", word: "ظرف", emoji: "✉️" },
+  { id: 17, letter: "ع", word: "عنب", emoji: "🍇" },
+  { id: 18, letter: "غ", word: "غيمة", emoji: "☁️" },
+  { id: 19, letter: "ف", word: "فراشة", emoji: "🦋" },
+  { id: 20, letter: "ق", word: "قمر", emoji: "🌙" },
+  { id: 21, letter: "ك", word: "كتاب", emoji: "📘" },
+  { id: 22, letter: "ل", word: "ليمون", emoji: "🍋" },
+  { id: 23, letter: "م", word: "موز", emoji: "🍌" },
+  { id: 24, letter: "ن", word: "نحلة", emoji: "🐝" },
+  { id: 25, letter: "ه", word: "هلال", emoji: "🌙" },
+  { id: 26, letter: "و", word: "وردة", emoji: "🌹" },
+  { id: 27, letter: "ي", word: "يد", emoji: "✋" },
+];
 
 const COLORS = ["#F97373", "#F6B73C", "#4BAE8A", "#6C8FF5", "#B47AE5", "#252B48"];
 
@@ -62,25 +114,34 @@ const BADGES = [
 
 const STORAGE_KEY = "haroofi-al-marah-profile";
 
-const speak = async (text) => {
+const speak = async (text, options = {}) => {
   try {
     await Speech.stop();
     const voices = await Speech.getAvailableVoicesAsync();
     const arabicVoice = voices.find((voice) => /^ar([_-]|$)/i.test(voice.language || ""));
-    if (!arabicVoice) {
-      Alert.alert("الصوت العربي غير متوفر", "ثبّت بيانات النطق باللغة العربية من إعدادات تحويل النص إلى كلام في الهاتف.");
-      return;
-    }
+    const chosenVoice = arabicVoice || voices[0];
 
     Speech.speak(text, {
-      language: arabicVoice.language,
-      voice: arabicVoice.identifier,
-      rate: 0.78,
-      pitch: 1.05,
-      onError: () => Alert.alert("تعذّر تشغيل الصوت", "تحقق من محرك تحويل النص إلى كلام ومستوى صوت الوسائط في الهاتف."),
+      language: chosenVoice ? chosenVoice.language || "ar-SA" : "ar-SA",
+      voice: chosenVoice ? chosenVoice.identifier : undefined,
+      rate: options.rate ?? 0.82,
+      pitch: options.pitch ?? 1.13,
+      onError: () => {},
     });
   } catch (error) {
-    Alert.alert("تعذّر تشغيل الصوت", "تحقق من إعدادات تحويل النص إلى كلام ثم أعد المحاولة.");
+    // Keep app functional even if speech is unavailable.
+  }
+};
+
+const playClapSound = async () => {
+  try {
+    const { sound } = await Audio.Sound.createAsync({
+      uri: "https://actions.google.com/sounds/v1/cartoon/slide_whistle.ogg",
+    });
+    await sound.setVolumeAsync(0.7);
+    await sound.playAsync();
+  } catch (error) {
+    // Ignore errors and keep the game running.
   }
 };
 
@@ -131,12 +192,16 @@ export default function App() {
   const [completedLevels, setCompletedLevels] = useState([]);
   const [certificateUnlocked, setCertificateUnlocked] = useState(false);
   const [starsCollection, setStarsCollection] = useState([]);
+  const [coloringComplete, setColoringComplete] = useState(false);
+  const [drawingLength, setDrawingLength] = useState(0);
+  const [coloringProgress, setColoringProgress] = useState(0);
+  const [soundMatchQuestion, setSoundMatchQuestion] = useState(0);
+  const [soundMatchFeedback, setSoundMatchFeedback] = useState("");
   const musicRef = useRef(null);
   const currentPathRef = useRef("");
   const [canvasSize, setCanvasSize] = useState({ width: 320, height: 300 });
   const canvasRef = useRef(null);
   const canvasOrigin = useRef({ x: 0, y: 0 });
-
   const persisted = useRef(false);
 
   const levelInfo = useMemo(() => {
@@ -157,14 +222,43 @@ export default function App() {
   }, [question]);
 
   const matchChoices = useMemo(() => {
-    const correct = LETTERS[matchQuestion];
-    return shuffled([...shuffled(LETTERS.filter((item) => item.id !== correct.id)).slice(0, 3), correct]);
+    const correct = WORD_BANK[matchQuestion] || WORD_BANK[0];
+    return shuffled([
+      ...shuffled(WORD_BANK.filter((item) => item.id !== correct.id)).slice(0, 3),
+      correct,
+    ]);
   }, [matchQuestion]);
 
   const missingChoices = useMemo(() => {
-    const correct = LETTERS[missingQuestion];
-    return shuffled([...shuffled(LETTERS.filter((item) => item.id !== correct.id)).slice(0, 3), correct]);
+    const correct = WORD_BANK[missingQuestion] || WORD_BANK[0];
+    return shuffled([
+      ...shuffled(WORD_BANK.filter((item) => item.id !== correct.id)).slice(0, 3),
+      correct,
+    ]);
   }, [missingQuestion]);
+
+  const soundMatchChoices = useMemo(() => {
+    const correct = LETTERS[soundMatchQuestion] || LETTERS[0];
+    return shuffled([...shuffled(LETTERS.filter((item) => item.id !== correct.id)).slice(0, 3), correct]);
+  }, [soundMatchQuestion]);
+
+  const triggerCelebration = (message) => {
+    const burst = Array.from({ length: 12 }, (_, index) => ({
+      id: `${Date.now()}-${index}`,
+      left: 20 + (index % 4) * 18,
+      top: 18 + Math.floor(index / 4) * 18,
+      emoji: ["⭐", "✨", "🎉", "🌟"][index % 4],
+      x: (index % 3) * 28 - 28,
+      y: Math.floor(index / 3) * 28 - 28,
+    }));
+
+    setCelebration(burst);
+    setAchievement({ title: "إنجاز رائع", detail: message });
+    setTimeout(() => setCelebration([]), 1200);
+    if (soundOn) {
+      playPositiveTone();
+    }
+  };
 
   const playPositiveTone = async () => {
     if (!soundOn) return;
@@ -174,7 +268,7 @@ export default function App() {
       });
       await sound.playAsync();
     } catch (error) {
-      // Ignore audio errors and keep app functional.
+      // Ignore audio errors.
     }
   };
 
@@ -189,14 +283,14 @@ export default function App() {
     try {
       if (!musicRef.current) {
         const { sound } = await Audio.Sound.createAsync(
-          { uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-          { isLooping: true, volume: 0.16 }
+          { uri: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+          { isLooping: true, volume: 0.08 }
         );
         musicRef.current = sound;
       }
       await musicRef.current.playAsync();
     } catch (error) {
-      // Keep the experience working if audio is unavailable.
+      // Silent fallback for missing network audio.
     }
   };
 
@@ -262,61 +356,6 @@ export default function App() {
     saveProfile();
   }, [avatarColor, childName, completedLevels, certificateUnlocked, learned, musicOn, score, selectedCharacter, soundOn, starsCollection]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onStartShouldSetPanResponderCapture: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponderCapture: () => true,
-        onPanResponderGrant: (event) => {
-          const x = Math.max(0, Math.min(canvasSize.width, event.nativeEvent.pageX - canvasOrigin.current.x));
-          const y = Math.max(0, Math.min(canvasSize.height, event.nativeEvent.pageY - canvasOrigin.current.y));
-          const next = `M ${x} ${y}`;
-          currentPathRef.current = next;
-          setCurrentPath(next);
-        },
-        onPanResponderMove: (event) => {
-          const x = Math.max(0, Math.min(canvasSize.width, event.nativeEvent.pageX - canvasOrigin.current.x));
-          const y = Math.max(0, Math.min(canvasSize.height, event.nativeEvent.pageY - canvasOrigin.current.y));
-          const next = `${currentPathRef.current} L ${x} ${y}`;
-          currentPathRef.current = next;
-          setCurrentPath(next);
-        },
-        onPanResponderRelease: () => {
-          if (currentPathRef.current) {
-            setPaths((old) => [...old, currentPathRef.current]);
-          }
-          currentPathRef.current = "";
-          setCurrentPath("");
-        },
-        onPanResponderTerminate: () => {
-          if (currentPathRef.current) {
-            setPaths((old) => [...old, currentPathRef.current]);
-          }
-          currentPathRef.current = "";
-          setCurrentPath("");
-        },
-      }),
-    [canvasSize.height, canvasSize.width]
-  );
-
-  const triggerCelebration = (message) => {
-    const burst = Array.from({ length: 12 }, (_, index) => ({
-      id: `${Date.now()}-${index}`,
-      left: 20 + (index % 4) * 18,
-      top: 18 + Math.floor(index / 4) * 18,
-      emoji: ["⭐", "✨", "🎉", "🌟"][index % 4],
-      x: (index % 3) * 28 - 28,
-      y: Math.floor(index / 3) * 28 - 28,
-    }));
-
-    setCelebration(burst);
-    setAchievement({ title: "إنجاز رائع", detail: message });
-    setTimeout(() => setCelebration([]), 1200);
-    playPositiveTone();
-  };
-
   useEffect(() => {
     const unlocked = LEVELS.filter((item) => score >= item.required).map((item) => item.name);
     setCompletedLevels(unlocked);
@@ -348,6 +387,106 @@ export default function App() {
     Speech.stop();
   }, []);
 
+  useEffect(() => {
+    if (screen === "game") {
+      const timer = setTimeout(() => {
+        speak(`حرف ${LETTERS[question].name}`, { rate: 0.78, pitch: 1.2 });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [screen, question]);
+
+  useEffect(() => {
+    if (screen === "match") {
+      const timer = setTimeout(() => {
+        speak(`اختر الكلمة التي تبدأ بحرف ${LETTERS[matchQuestion].name}`, { rate: 0.8, pitch: 1.18 });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [screen, matchQuestion]);
+
+  useEffect(() => {
+    if (screen === "missing") {
+      const timer = setTimeout(() => {
+        speak(`ما الحرف الذي تبدأ به كلمة ${WORD_BANK[missingQuestion].word}?`, { rate: 0.8, pitch: 1.18 });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [screen, missingQuestion]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderGrant: (event) => {
+          if (coloringComplete) return;
+          const x = Math.max(0, Math.min(canvasSize.width, event.nativeEvent.pageX - canvasOrigin.current.x));
+          const y = Math.max(0, Math.min(canvasSize.height, event.nativeEvent.pageY - canvasOrigin.current.y));
+          const next = `M ${x} ${y}`;
+          currentPathRef.current = next;
+          setCurrentPath(next);
+          setDrawingLength(0);
+          setColoringProgress(0);
+        },
+        onPanResponderMove: (event) => {
+          if (coloringComplete) return;
+          const x = Math.max(0, Math.min(canvasSize.width, event.nativeEvent.pageX - canvasOrigin.current.x));
+          const y = Math.max(0, Math.min(canvasSize.height, event.nativeEvent.pageY - canvasOrigin.current.y));
+
+          const previous = currentPathRef.current.split(" ");
+          const lastX = Number(previous[previous.length - 2] || 0);
+          const lastY = Number(previous[previous.length - 1] || 0);
+          const dx = x - lastX;
+          const dy = y - lastY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance > 0) {
+            const next = `${currentPathRef.current} L ${x} ${y}`;
+            currentPathRef.current = next;
+            setCurrentPath(next);
+            setDrawingLength((prev) => {
+              const nextLength = prev + distance;
+              const progress = Math.min(100, (nextLength / 480) * 100);
+              setColoringProgress(progress);
+              if (progress >= 80 && !coloringComplete) {
+                completeColoring();
+              }
+              return nextLength;
+            });
+          }
+        },
+        onPanResponderRelease: () => {
+          if (currentPathRef.current) {
+            setPaths((old) => [...old, currentPathRef.current]);
+          }
+          currentPathRef.current = "";
+          setCurrentPath("");
+        },
+        onPanResponderTerminate: () => {
+          if (currentPathRef.current) {
+            setPaths((old) => [...old, currentPathRef.current]);
+          }
+          currentPathRef.current = "";
+          setCurrentPath("");
+        },
+      }),
+    [canvasSize.height, canvasSize.width, coloringComplete]
+  );
+
+  const completeColoring = () => {
+    if (coloringComplete) return;
+    setColoringComplete(true);
+    setColoringProgress(100);
+    setAchievement({ title: "رائع!", detail: `كتبت حرف ${selected.letter} بشكل صحيح` });
+    setScore((s) => s + 1);
+    triggerCelebration(`حرف ${selected.letter} مكتوب بشكل صحيح`);
+    playClapSound();
+    speak(`أحسنت! كتبت حرف ${selected.name} بشكل صحيح.`, { rate: 0.76, pitch: 1.18 });
+  };
+
   const openLetter = (item) => {
     setSelected(item);
     setScreen("letter");
@@ -358,6 +497,9 @@ export default function App() {
     setSelected(item);
     setPaths([]);
     setCurrentPath("");
+    setColoringComplete(false);
+    setDrawingLength(0);
+    setColoringProgress(0);
     currentPathRef.current = "";
     setScreen("color");
   };
@@ -372,7 +514,7 @@ export default function App() {
       setFeedback("أحسنت! إجابة رائعة ⭐");
       setScore((s) => s + 1);
       triggerCelebration(`إجابة صحيحة: ${item.letter}`);
-      speak("أحسنت! هذا هو الحرف الصحيح.");
+      speak("أحسنت! هذا هو الحرف الصحيح.", { rate: 0.8, pitch: 1.18 });
     } else {
       setFeedback("حاول مرة أخرى، أنت تستطيع 💪");
       setAchievement({ title: "جرب مجددًا", detail: "أنت على الطريق الصحيح" });
@@ -380,11 +522,12 @@ export default function App() {
   };
 
   const answerMatch = (item) => {
-    if (item.id === matchQuestion) {
+    const target = WORD_BANK[matchQuestion] || WORD_BANK[0];
+    if (item.id === target.id) {
       setMatchFeedback("أحسنت! هذه الكلمة تبدأ بهذا الحرف ⭐");
       setScore((s) => s + 1);
       triggerCelebration(`كلمة صحيحة: ${item.word}`);
-      speak("أحسنت! الكلمة صحيحة.");
+      speak("أحسنت! الكلمة صحيحة.", { rate: 0.8, pitch: 1.18 });
     } else {
       setMatchFeedback("اقتربت! استمع إلى الحرف وحاول مرة أخرى 💪");
       setAchievement({ title: "اقتربت", detail: "استمع مرة أخرى" });
@@ -392,14 +535,28 @@ export default function App() {
   };
 
   const answerMissing = (item) => {
-    if (item.id === missingQuestion) {
+    const target = WORD_BANK[missingQuestion] || WORD_BANK[0];
+    if (item.id === target.id) {
       setMissingFeedback("رائع! أكملت الكلمة بالحرف الصحيح ⭐");
       setScore((s) => s + 1);
       triggerCelebration("أكملت الكلمة بشكل صحيح");
-      speak("رائع! لقد أتممت الكلمة بشكل صحيح.");
+      speak("رائع! لقد أتممت الكلمة بشكل صحيح.", { rate: 0.8, pitch: 1.2 });
     } else {
       setMissingFeedback("جرّب مرة أخرى، ما الحرف الذي تبدأ به الكلمة؟ 💪");
       setAchievement({ title: "جرب مرة أخرى", detail: "ستفعلها في المرة القادمة" });
+    }
+  };
+
+  const answerSoundMatch = (item) => {
+    const correct = LETTERS[soundMatchQuestion] || LETTERS[0];
+    if (item.id === correct.id) {
+      setSoundMatchFeedback("ممتاز! هذا هو الحرف الصحيح ⭐");
+      setScore((s) => s + 1);
+      triggerCelebration(`حرف ${item.letter} صحيح`);
+      speak(`أحسنت! هذا هو حرف ${correct.name}.`, { rate: 0.8, pitch: 1.18 });
+    } else {
+      setSoundMatchFeedback("قريب جدًا! استمع مرة أخرى وحاول مجددًا 💪");
+      setAchievement({ title: "قريب جدًا", detail: "هذه المرة ستكون أفضل" });
     }
   };
 
@@ -527,7 +684,7 @@ export default function App() {
             <Text style={styles.playerName}>{selectedCharacter.emoji} {selectedCharacter.name}</Text>
           </View>
 
-          <Pressable style={styles.primaryButton} onPress={() => { setScreen("home"); speak("مرحبًا، هيا نبدأ التعلم"); }}>
+          <Pressable style={styles.primaryButton} onPress={() => { setScreen("home"); speak("مرحبًا، هيا نبدأ التعلم", { rate: 0.8, pitch: 1.15 }); }}>
             <Text style={styles.primaryButtonText}>ابدأ اللعب 🚀</Text>
           </Pressable>
         </ScrollView>
@@ -621,8 +778,9 @@ export default function App() {
             {activityCard("🔤", "تعلّم الحروف", "تعرّف على الحروف والكلمات", "#DFF3FF", () => setScreen("letters"), "تعلم")}
             {activityCard("🎨", "التلوين", "لوّن الحرف بإصبعك", "#F2E9FF", () => startColoring(LETTERS[0]), "إبداع")}
             {activityCard("🔊", "استمع واختر", "استمع إلى صوت الحرف", "#E2F7EA", () => setScreen("game"), "صوت")}
-            {activityCard("🧩", "اربط الكلمة", "اختر الكلمة المناسبة", "#FFE7D6", () => { setMatchQuestion(randomLetterId()); setMatchFeedback(""); setScreen("match"); }, "لعبة")}
-            {activityCard("🔎", "الحرف المفقود", "أكمل الكلمة", "#FFF1B8", () => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); setScreen("missing"); }, "تحدي")}
+            {activityCard("🧩", "اربط الكلمة", "اختر الكلمة المناسبة", "#FFE7D6", () => { setMatchQuestion(randomLetterId()); setMatchFeedback(""); setScreen("match"); }, "كلمات")}
+            {activityCard("🔎", "الحرف المفقود", "أكمل الكلمة", "#FFF1B8", () => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); setScreen("missing"); }, "مهم")}
+            {activityCard("🎵", "اختر الصوت المناسب", "طابق الحرف بالصوت", "#FFE6EE", () => { setSoundMatchQuestion(randomLetterId()); setSoundMatchFeedback(""); setScreen("soundMatch"); }, "لعبة جديدة")}
           </View>
 
           {certificateUnlocked && (
@@ -654,7 +812,7 @@ export default function App() {
             <Text style={styles.certificateIcon}>🏆</Text>
             <Text style={styles.certificateTitle}>شهادة إنجاز</Text>
             <Text style={styles.certificateName}>{childName || "طفلي"}</Text>
-            <Text style={styles.certificateText}>تمت مكافأة هذا الطفل بنجاح في تعلم الحروف العربية، واستكشاف الكلمات، وتحقيق مستويات عالية في المرح والتعلّم.</Text>
+            <Text style={styles.certificateText}>تمت مكافأة هذا الطفل بنجاح في تعلم الحروف العربية، واستكشاف الكلمات، وتحقيق مستويات جديدة في الألعاب التعليمية.</Text>
             <Text style={styles.certificateMeta}>النجوم: {score} · الحروف: {learned.length}/28</Text>
           </View>
         </ScrollView>
@@ -730,7 +888,7 @@ export default function App() {
             <Text style={styles.wordEmoji}>{selected.emoji}</Text>
             <Text style={styles.word}>{selected.word}</Text>
             <Text style={styles.helper}>يبدأ اسم {selected.word} بحرف {selected.letter}</Text>
-            <Pressable style={styles.primaryButton} onPress={() => speak(`حرف ${selected.name}. ${selected.word}`)}>
+            <Pressable style={styles.primaryButton} onPress={() => speak(`حرف ${selected.name}. ${selected.word}`, { rate: 0.8, pitch: 1.18 })}>
               <Text style={styles.primaryButtonText}>🔊 استمع إلى الحرف والكلمة</Text>
             </Pressable>
             <Pressable style={styles.secondaryButton} onPress={() => startColoring(selected)}>
@@ -750,7 +908,7 @@ export default function App() {
           <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>🎨 لوّن الحرف بإصبعك</Text>
-            <Text style={styles.helper}>اتبع شكل الحرف الرمادي بتمرير إصبعك عليه، وكأنك تتدرّب على كتابته.</Text>
+            <Text style={styles.helper}>اكتب الحرف على الشكل الرمادي أولًا، ثم ستظهر الألوان ويُسمع تصفيق عند اكتمال الرسم.</Text>
             <View
               ref={canvasRef}
               style={styles.drawingCanvas}
@@ -772,8 +930,9 @@ export default function App() {
                 ))}
                 {!!currentPath && <Path d={currentPath} stroke={color} strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" fill="none" />}
               </Svg>
+              {coloringComplete && <View pointerEvents="none" style={styles.completeBadge}><Text style={styles.completeBadgeText}>✅ تم</Text></View>}
             </View>
-            <Text style={styles.helper}>اختر لون الفرشاة ثم مرّر إصبعك فوق الحرف ✍️</Text>
+            <Text style={styles.helper}>التقدم: {Math.round(coloringProgress)}%</Text>
             <View style={styles.colorRow}>
               {COLORS.map((c) => (
                 <Pressable
@@ -786,10 +945,10 @@ export default function App() {
               ))}
             </View>
             <View style={styles.pager}>
-              <Pressable style={styles.navButton} onPress={() => { setPaths([]); setCurrentPath(""); currentPathRef.current = ""; }}><Text style={styles.navText}>🧹 مسح الرسم</Text></Pressable>
+              <Pressable style={styles.navButton} onPress={() => { setPaths([]); setCurrentPath(""); setColoringComplete(false); setDrawingLength(0); setColoringProgress(0); currentPathRef.current = ""; }}><Text style={styles.navText}>🧹 مسح الرسم</Text></Pressable>
               <Pressable style={styles.navButton} onPress={() => startColoring(LETTERS[(selected.id + 1) % LETTERS.length])}><Text style={styles.navText}>الحرف التالي ←</Text></Pressable>
             </View>
-            <Pressable style={styles.primaryButton} onPress={() => speak(`حرف ${selected.name}`)}><Text style={styles.primaryButtonText}>🔊 استمع إلى اسم الحرف</Text></Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => speak(`حرف ${selected.name}`, { rate: 0.8, pitch: 1.2 })}><Text style={styles.primaryButtonText}>🔊 استمع إلى اسم الحرف</Text></Pressable>
             <Pressable style={styles.secondaryButton} onPress={goHome}><Text style={styles.secondaryButtonText}>✨ انتهيت من التلوين</Text></Pressable>
           </View>
         </ScrollView>
@@ -801,7 +960,7 @@ export default function App() {
           <View style={styles.detailCard}>
             <Text style={styles.sectionTitle}>🎯 استمع واختر الحرف</Text>
             <Text style={styles.helper}>استمع إلى اسم الحرف ثم اختره من البطاقات.</Text>
-            <Pressable style={styles.soundButton} onPress={() => speak(LETTERS[question].name)}><Text style={styles.soundText}>🔊 استمع إلى السؤال</Text></Pressable>
+            <Pressable style={styles.soundButton} onPress={() => speak(LETTERS[question].name, { rate: 0.8, pitch: 1.18 })}><Text style={styles.soundText}>🔊 استمع إلى السؤال</Text></Pressable>
             <View style={styles.choices}>
               {choices.map((item) => (
                 <Pressable key={item.id} onPress={() => answer(item)} style={styles.choiceTile}><Text style={styles.choiceText}>{item.letter}</Text></Pressable>
@@ -820,7 +979,7 @@ export default function App() {
             <Text style={styles.sectionTitle}>🧩 اربط الحرف بالكلمة</Text>
             <Text style={styles.helper}>اختر الكلمة التي تبدأ بهذا الحرف.</Text>
             <Text style={styles.matchLetter}>{LETTERS[matchQuestion].letter}</Text>
-            <Pressable style={styles.soundButton} onPress={() => speak(`حرف ${LETTERS[matchQuestion].name}`)}><Text style={styles.soundText}>🔊 استمع إلى الحرف</Text></Pressable>
+            <Pressable style={styles.soundButton} onPress={() => speak(`حرف ${LETTERS[matchQuestion].name}`, { rate: 0.8, pitch: 1.18 })}><Text style={styles.soundText}>🔊 استمع إلى الحرف</Text></Pressable>
             <View style={styles.wordChoices}>
               {matchChoices.map((item) => (
                 <Pressable key={item.id} onPress={() => answerMatch(item)} style={styles.wordChoice}>
@@ -842,8 +1001,8 @@ export default function App() {
             <Text style={styles.sectionTitle}>🔎 اكتشف الحرف المفقود</Text>
             <Text style={styles.helper}>انظر إلى الصورة، ثم اختر الحرف الناقص في بداية اسمها.</Text>
             <View style={styles.missingPictureCard}>
-              <Text style={styles.missingPicture}>{LETTERS[missingQuestion].emoji}</Text>
-              <Text style={styles.missingWord}>ـ{LETTERS[missingQuestion].word.slice(1)}</Text>
+              <Text style={styles.missingPicture}>{WORD_BANK[missingQuestion].emoji}</Text>
+              <Text style={styles.missingWord}>ـ{WORD_BANK[missingQuestion].word.slice(1)}</Text>
               <Text style={styles.missingPictureHint}>ما اسم هذا الشيء؟</Text>
             </View>
             <Text style={styles.helper}>اختر الحرف الذي تبدأ به الكلمة.</Text>
@@ -854,6 +1013,30 @@ export default function App() {
             </View>
             {!!missingFeedback && <Text style={styles.feedback}>{missingFeedback}</Text>}
             <Pressable style={styles.primaryButton} onPress={() => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
+          </View>
+        </ScrollView>
+      )}
+
+      {screen === "soundMatch" && (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Pressable onPress={goHome}><Text style={styles.back}>← العودة للرئيسية</Text></Pressable>
+          <View style={styles.detailCard}>
+            <Text style={styles.sectionTitle}>🎵 اختر الحرف الصحيح</Text>
+            <Text style={styles.helper}>استمع إلى السؤال ثم اختر الحرف الذي يطابق الصوت.</Text>
+            <View style={styles.soundPromptCard}>
+              <Text style={styles.promptEmoji}>{LETTERS[soundMatchQuestion].emoji}</Text>
+              <Text style={styles.promptWord}>{LETTERS[soundMatchQuestion].word}</Text>
+            </View>
+            <Pressable style={styles.soundButton} onPress={() => speak(`اسم هذه الكلمة: ${LETTERS[soundMatchQuestion].word}`, { rate: 0.8, pitch: 1.18 })}>
+              <Text style={styles.soundText}>🔊 اعادة السؤال</Text>
+            </Pressable>
+            <View style={styles.choices}>
+              {soundMatchChoices.map((item) => (
+                <Pressable key={item.id} onPress={() => answerSoundMatch(item)} style={styles.choiceTile}><Text style={styles.choiceText}>{item.letter}</Text></Pressable>
+              ))}
+            </View>
+            {!!soundMatchFeedback && <Text style={styles.feedback}>{soundMatchFeedback}</Text>}
+            <Pressable style={styles.primaryButton} onPress={() => { setSoundMatchQuestion(randomLetterId()); setSoundMatchFeedback(""); }}><Text style={styles.primaryButtonText}>لعبة جديدة ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
@@ -892,7 +1075,7 @@ const styles = StyleSheet.create({
   playerCard: { marginTop: 18, backgroundColor: "#EAF7FF", borderRadius: 20, padding: 14, alignItems: "center" },
   playerLabel: { fontSize: 12, color: "#58718E", fontWeight: "800" },
   playerName: { fontSize: 22, color: "#313A5F", fontWeight: "900", marginTop: 8 },
-  headerCard: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 26, paddingHorizontal: 14, paddingVertical: 16, marginTop: 12, flexDirection: "row", alignItems: "center", shadowColor: "#E09D8D", shadowOpacity: 0.14, shadowRadius: 14, elevation: 3 },
+  headerCard: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 26, paddingHorizontal: 14, paddingVertical: 16, marginTop: 12, flexDirection: "row", alignItems: "center", shadowColor: "#3B315D", shadowOpacity: 0.07, shadowRadius: 12 },
   headerLeft: { width: 62, alignItems: "center", justifyContent: "center" },
   avatarBubble: { width: 58, height: 58, borderRadius: 20, alignItems: "center", justifyContent: "center", shadowColor: "#F3BE69", shadowOpacity: 0.25, shadowRadius: 8 },
   avatarEmoji: { fontSize: 32 },
@@ -912,10 +1095,10 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", borderRadius: 999 },
   levelHint: { marginTop: 8, textAlign: "right", color: "#655E7D", fontSize: 12, fontWeight: "700" },
   statsRow: { marginTop: 18, flexDirection: "row", justifyContent: "space-between", gap: 10 },
-  statCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 20, paddingVertical: 14, paddingHorizontal: 12, alignItems: "center", shadowColor: "#4B3C69", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  statCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 20, paddingVertical: 14, paddingHorizontal: 12, alignItems: "center", shadowColor: "#4B3C69", shadowOpacity: 0.06, shadowRadius: 10 },
   statValue: { fontSize: 22, fontWeight: "900", color: "#564C7B" },
   statLabel: { fontSize: 11, color: "#6F6A8B", marginTop: 3 },
-  heroCard: { marginTop: 18, backgroundColor: "#DFF3FF", borderRadius: 28, padding: 18, flexDirection: "row", alignItems: "center", gap: 12, shadowColor: "#76B6E6", shadowOpacity: 0.15, shadowRadius: 12, elevation: 2 },
+  heroCard: { marginTop: 18, backgroundColor: "#DFF3FF", borderRadius: 28, padding: 18, flexDirection: "row", alignItems: "center", gap: 12, shadowColor: "#76B6E6", shadowOpacity: 0.15, shadowRadius: 10 },
   heroEmoji: { fontSize: 52 },
   heroTitle: { color: "#37335C", fontSize: 20, fontWeight: "900", textAlign: "right" },
   heroText: { color: "#555574", textAlign: "right", lineHeight: 22, marginTop: 5, fontSize: 13 },
@@ -965,7 +1148,7 @@ const styles = StyleSheet.create({
   levelBubble: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#EAE3FF", textAlign: "center", textAlignVertical: "center", fontWeight: "900", color: "#5C4A8D" },
   levelNameRow: { flex: 1, marginLeft: 10, color: "#453E66", fontWeight: "800" },
   levelDot: { fontSize: 18 },
-  detailCard: { backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 28, padding: 18, alignItems: "center", marginTop: 8, shadowColor: "#3B315D", shadowOpacity: 0.08, shadowRadius: 12, elevation: 2 },
+  detailCard: { backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 28, padding: 18, alignItems: "center", marginTop: 8, shadowColor: "#3B315D", shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
   detailBadge: { backgroundColor: "#EAE3FF", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
   detailBadgeText: { fontSize: 12, color: "#564E79", fontWeight: "800" },
   bigLetter: { fontSize: 122, fontWeight: "900", lineHeight: 138 },
@@ -982,6 +1165,8 @@ const styles = StyleSheet.create({
   navText: { color: "#5548A7", fontWeight: "800", textAlign: "center" },
   drawingCanvas: { width: "100%", height: 300, borderRadius: 22, backgroundColor: "#FFFDF7", borderWidth: 2, borderColor: "#E6E0F5", overflow: "hidden", alignItems: "center", justifyContent: "center" },
   letterGuide: { position: "absolute", fontSize: 220, lineHeight: 260, color: "#D8D4E3", fontWeight: "900", textAlign: "center", textAlignVertical: "center" },
+  completeBadge: { position: "absolute", right: 12, bottom: 12, backgroundColor: "rgba(56, 180, 112, 0.12)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  completeBadgeText: { fontSize: 16, color: "#2E8B57", fontWeight: "900" },
   colorRow: { flexDirection: "row", justifyContent: "center", flexWrap: "wrap", gap: 10, marginVertical: 15 },
   colorDot: { width: 42, height: 42, borderRadius: 24 },
   soundButton: { backgroundColor: "#DFF3FF", padding: 14, borderRadius: 16, marginTop: 10, width: "100%", alignItems: "center" },
@@ -999,6 +1184,9 @@ const styles = StyleSheet.create({
   missingPictureHint: { color: "#77718E", fontSize: 14, fontWeight: "700", marginBottom: 5 },
   missingWord: { fontSize: 45, color: "#37335C", fontWeight: "900", marginVertical: 8 },
   feedback: { color: "#2C815B", fontWeight: "900", fontSize: 16, textAlign: "center", marginBottom: 8 },
+  soundPromptCard: { width: "100%", alignItems: "center", backgroundColor: "#F7F4FF", borderRadius: 22, paddingVertical: 18, marginTop: 8 },
+  promptEmoji: { fontSize: 80 },
+  promptWord: { fontSize: 26, fontWeight: "900", color: "#413A63", marginTop: 8 },
   footer: { padding: 12, alignItems: "center" },
   footerText: { color: "#9991AC", fontSize: 12, fontWeight: "700" },
 });
