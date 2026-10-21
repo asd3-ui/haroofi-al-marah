@@ -9,6 +9,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -18,13 +19,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Verify Expo dependency compatibility
         run: npx expo install --check
 
-      - name: Lint the app
-        run: npm run lint
+      - name: Validate Android JavaScript bundle
+        run: npx expo export --platform android
