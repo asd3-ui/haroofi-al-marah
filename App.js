@@ -48,6 +48,14 @@ const LETTERS = [
   ["ي", "ياء", "يد", "✋"],
 ].map(([letter, name, word, emoji], id) => ({ id, letter, name, word, emoji }));
 
+const LETTER_PACKS = [
+  { id: "animals", name: "حيوانات", emoji: "🐾", letters: ["ب", "ح", "د", "ر", "س", "م", "ن", "ي"] },
+  { id: "nature", name: "طبيعة", emoji: "🌿", letters: ["ر", "ز", "س", "ش", "ص", "غ", "ه", "و"] },
+  { id: "food", name: "طعام", emoji: "🍉", letters: ["ت", "ث", "ج", "ذ", "م", "ل", "ي", "ب"] },
+  { id: "space", name: "سماء", emoji: "🌙", letters: ["ق", "ك", "م", "ن", "ه", "ي", "و", "ر"] },
+  { id: "travel", name: "رحلة", emoji: "🚀", letters: ["ط", "ل", "ق", "ر", "ي", "و", "م", "ح"] },
+];
+
 const WORD_BANK = [
   { id: 0, letter: "ا", word: "أسد", emoji: "🦁" },
   { id: 1, letter: "ب", word: "بطة", emoji: "🦆" },
@@ -148,21 +156,35 @@ const playClapSound = async () => {
 const shuffled = (items) => [...items].sort(() => Math.random() - 0.5);
 const randomLetterId = () => Math.floor(Math.random() * LETTERS.length);
 
+const getRandomLetterFromPack = (packId) => {
+  const pack = LETTER_PACKS.find((item) => item.id === packId) || LETTER_PACKS[0];
+  const letter = pack.letters[Math.floor(Math.random() * pack.letters.length)];
+  return LETTERS.find((item) => item.letter === letter) || LETTERS[0];
+};
+
 const FloatingDecoration = ({ emoji, style }) => {
   const animatedY = useRef(new Animated.Value(0)).current;
+  const animatedScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(animatedY, { toValue: -10, duration: 1500, useNativeDriver: true }),
-        Animated.timing(animatedY, { toValue: 10, duration: 1500, useNativeDriver: true }),
-        Animated.timing(animatedY, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(animatedY, { toValue: -10, duration: 1500, useNativeDriver: true }),
+          Animated.timing(animatedY, { toValue: 10, duration: 1500, useNativeDriver: true }),
+          Animated.timing(animatedY, { toValue: 0, duration: 1200, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(animatedScale, { toValue: 1.15, duration: 1200, useNativeDriver: true }),
+          Animated.timing(animatedScale, { toValue: 0.95, duration: 1200, useNativeDriver: true }),
+          Animated.timing(animatedScale, { toValue: 1, duration: 900, useNativeDriver: true }),
+        ]),
       ])
     ).start();
-  }, [animatedY]);
+  }, [animatedScale, animatedY]);
 
   return (
-    <Animated.View style={[style, { transform: [{ translateY: animatedY }] }]}>
+    <Animated.View style={[style, { transform: [{ translateY: animatedY }, { scale: animatedScale }, { rotate: "3deg" }] }]}>
       <Text style={styles.cloudText}>{emoji}</Text>
     </Animated.View>
   );
@@ -197,6 +219,7 @@ export default function App() {
   const [coloringProgress, setColoringProgress] = useState(0);
   const [soundMatchQuestion, setSoundMatchQuestion] = useState(0);
   const [soundMatchFeedback, setSoundMatchFeedback] = useState("");
+  const [activePack, setActivePack] = useState(LETTER_PACKS[0].id);
   const musicRef = useRef(null);
   const currentPathRef = useRef("");
   const [canvasSize, setCanvasSize] = useState({ width: 320, height: 300 });
@@ -241,6 +264,11 @@ export default function App() {
     const correct = LETTERS[soundMatchQuestion] || LETTERS[0];
     return shuffled([...shuffled(LETTERS.filter((item) => item.id !== correct.id)).slice(0, 3), correct]);
   }, [soundMatchQuestion]);
+
+  const activePackInfo = useMemo(
+    () => LETTER_PACKS.find((pack) => pack.id === activePack) || LETTER_PACKS[0],
+    [activePack]
+  );
 
   const triggerCelebration = (message) => {
     const burst = Array.from({ length: 12 }, (_, index) => ({
@@ -505,7 +533,8 @@ export default function App() {
   };
 
   const nextQuestion = () => {
-    setQuestion(randomLetterId());
+    const nextLetter = getRandomLetterFromPack(activePack);
+    setQuestion(nextLetter.id);
     setFeedback("");
   };
 
@@ -616,7 +645,7 @@ export default function App() {
                 {
                   left: `${item.left}%`,
                   top: `${item.top}%`,
-                  transform: [{ translateX: item.x }, { translateY: item.y }],
+                  transform: [{ translateX: item.x }, { translateY: item.y }, { rotate: `${item.x}deg` }, { scale: 1.2 }],
                 },
               ]}
             >
@@ -757,6 +786,17 @@ export default function App() {
             </Pressable>
           </View>
 
+          <View style={styles.packBanner}>
+            <Text style={styles.packLabel}>مجموعة الحروف الحالية</Text>
+            <Pressable
+              onPress={() => setActivePack((prev) => LETTER_PACKS[(LETTER_PACKS.findIndex((pack) => pack.id === prev) + 1) % LETTER_PACKS.length].id)}
+              style={styles.packSelector}
+            >
+              <Text style={styles.packSelectorEmoji}>{activePackInfo.emoji}</Text>
+              <Text style={styles.packSelectorText}>{activePackInfo.name}</Text>
+            </Pressable>
+          </View>
+
           <Text style={styles.sectionTitle}>أصدقاء الحروف</Text>
           <View style={styles.characterRow}>{CHARACTERS.map(characterPill)}</View>
 
@@ -776,11 +816,11 @@ export default function App() {
           <Text style={styles.sectionTitle}>اختر نشاطًا</Text>
           <View style={styles.activityGrid}>
             {activityCard("🔤", "تعلّم الحروف", "تعرّف على الحروف والكلمات", "#DFF3FF", () => setScreen("letters"), "تعلم")}
-            {activityCard("🎨", "التلوين", "لوّن الحرف بإصبعك", "#F2E9FF", () => startColoring(LETTERS[0]), "إبداع")}
+            {activityCard("🎨", "التلوين", "لوّن الحرف بإصبعك", "#F2E9FF", () => startColoring(getRandomLetterFromPack(activePack)), "إبداع")}
             {activityCard("🔊", "استمع واختر", "استمع إلى صوت الحرف", "#E2F7EA", () => setScreen("game"), "صوت")}
-            {activityCard("🧩", "اربط الكلمة", "اختر الكلمة المناسبة", "#FFE7D6", () => { setMatchQuestion(randomLetterId()); setMatchFeedback(""); setScreen("match"); }, "كلمات")}
-            {activityCard("🔎", "الحرف المفقود", "أكمل الكلمة", "#FFF1B8", () => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); setScreen("missing"); }, "مهم")}
-            {activityCard("🎵", "اختر الصوت المناسب", "طابق الحرف بالصوت", "#FFE6EE", () => { setSoundMatchQuestion(randomLetterId()); setSoundMatchFeedback(""); setScreen("soundMatch"); }, "لعبة جديدة")}
+            {activityCard("🧩", "اربط الكلمة", "اختر الكلمة المناسبة", "#FFE7D6", () => { const next = getRandomLetterFromPack(activePack); setMatchQuestion(next.id); setMatchFeedback(""); setScreen("match"); }, "كلمات")}
+            {activityCard("🔎", "الحرف المفقود", "أكمل الكلمة", "#FFF1B8", () => { const next = getRandomLetterFromPack(activePack); setMissingQuestion(next.id); setMissingFeedback(""); setScreen("missing"); }, "مهم")}
+            {activityCard("🎵", "اختر الصوت المناسب", "طابق الحرف بالصوت", "#FFE6EE", () => { const next = getRandomLetterFromPack(activePack); setSoundMatchQuestion(next.id); setSoundMatchFeedback(""); setScreen("soundMatch"); }, "لعبة جديدة")}
           </View>
 
           {certificateUnlocked && (
@@ -989,7 +1029,7 @@ export default function App() {
               ))}
             </View>
             {!!matchFeedback && <Text style={styles.feedback}>{matchFeedback}</Text>}
-            <Pressable style={styles.primaryButton} onPress={() => { setMatchQuestion(randomLetterId()); setMatchFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => { const next = getRandomLetterFromPack(activePack); setMatchQuestion(next.id); setMatchFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
@@ -1012,7 +1052,7 @@ export default function App() {
               ))}
             </View>
             {!!missingFeedback && <Text style={styles.feedback}>{missingFeedback}</Text>}
-            <Pressable style={styles.primaryButton} onPress={() => { setMissingQuestion(randomLetterId()); setMissingFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => { const next = getRandomLetterFromPack(activePack); setMissingQuestion(next.id); setMissingFeedback(""); }}><Text style={styles.primaryButtonText}>كلمة جديدة ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
@@ -1036,7 +1076,7 @@ export default function App() {
               ))}
             </View>
             {!!soundMatchFeedback && <Text style={styles.feedback}>{soundMatchFeedback}</Text>}
-            <Pressable style={styles.primaryButton} onPress={() => { setSoundMatchQuestion(randomLetterId()); setSoundMatchFeedback(""); }}><Text style={styles.primaryButtonText}>لعبة جديدة ➜</Text></Pressable>
+            <Pressable style={styles.primaryButton} onPress={() => { const next = getRandomLetterFromPack(activePack); setSoundMatchQuestion(next.id); setSoundMatchFeedback(""); }}><Text style={styles.primaryButtonText}>لعبة جديدة ➜</Text></Pressable>
           </View>
         </ScrollView>
       )}
@@ -1105,6 +1145,11 @@ const styles = StyleSheet.create({
   quickRow: { marginTop: 16, flexDirection: "row", justifyContent: "space-between", gap: 10 },
   quickButton: { flex: 1, backgroundColor: "#EDE8FF", paddingVertical: 12, borderRadius: 16, alignItems: "center" },
   quickButtonText: { color: "#4F4275", fontWeight: "900", fontSize: 12 },
+  packBanner: { marginTop: 16, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 22, paddingHorizontal: 14, paddingVertical: 12 },
+  packLabel: { fontSize: 11, color: "#6C6987", fontWeight: "800", textAlign: "right" },
+  packSelector: { marginTop: 8, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#F2ECFF", flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  packSelectorEmoji: { fontSize: 22, marginRight: 8 },
+  packSelectorText: { color: "#433C6A", fontWeight: "900", fontSize: 15 },
   characterRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   characterPill: { flex: 1, backgroundColor: "rgba(255,255,255,0.75)", borderRadius: 18, paddingVertical: 10, paddingHorizontal: 8, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
   characterPillLeft: { transform: [{ translateY: 6 }] },
