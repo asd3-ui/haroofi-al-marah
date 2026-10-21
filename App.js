@@ -3,7 +3,6 @@ import {
   SafeAreaView,
   ScrollView,
   View,
-  Image,
   Text,
   Pressable,
   StyleSheet,
@@ -473,7 +472,7 @@ export default function App() {
       {screen === "onboarding" && (
         <ScrollView contentContainerStyle={styles.onboardingContent} showsVerticalScrollIndicator={false}>
           <View style={styles.welcomeCard}>
-            <Image source={require("./assets/images/icon.png")} style={styles.welcomeArtwork} resizeMode="contain" accessibilityLabel="شعار حروفي المرحة" />
+            <Text style={styles.welcomeEmoji}>🎉</Text>
             <Text style={styles.welcomeTitle}>مرحبًا بك في حروفي المرحة</Text>
             <Text style={styles.welcomeText}>اختر اسمك وشخصيتك المفضلة، ثم ابدأ رحلتك في عالم الحروف واللعب.</Text>
           </View>
@@ -877,7 +876,6 @@ const styles = StyleSheet.create({
   onboardingContent: { paddingHorizontal: 16, paddingBottom: 40 },
   welcomeCard: { marginTop: 22, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 28, padding: 22, alignItems: "center" },
   welcomeEmoji: { fontSize: 60 },
-  welcomeArtwork: { width: 176, height: 176, marginBottom: 4 },
   welcomeTitle: { fontSize: 28, fontWeight: "900", color: "#2F2D4B", textAlign: "center", marginTop: 8 },
   welcomeText: { fontSize: 14, lineHeight: 22, color: "#5D5A7B", textAlign: "center", marginTop: 8 },
   profileCard: { marginTop: 14, backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 22, padding: 16 },
